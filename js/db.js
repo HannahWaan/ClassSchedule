@@ -1,27 +1,27 @@
 var db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY, {
-  global: {
-    headers: {
-      'apikey': CONFIG.SUPABASE_KEY,
-      'Authorization': 'Bearer ' + CONFIG.SUPABASE_KEY
+    global: {
+        headers: {
+            'apikey': CONFIG.SUPABASE_KEY,
+            'Authorization': 'Bearer ' + CONFIG.SUPABASE_KEY
+        }
     }
-  }
 });
 
 var Store = {
-  sessions: [],
-  students: [],
-  profile: { full_name: 'Hannah', theme: 'dark', font: "'Inter',sans-serif" },
-  async load() {
-    try {
-      var r1 = await db.from('sessions').select('*').eq('user_id', CONFIG.USER_ID).order('date');
-      var r2 = await db.from('students').select('*').eq('user_id', CONFIG.USER_ID).order('created_at');
-      var r3 = await db.from('profiles').select('*').eq('id', CONFIG.USER_ID).single();
-      this.sessions = r1.data || [];
-      this.students = r2.data || [];
-      if (r3.data) this.profile = r3.data;
-      console.log('Data loaded:', this.sessions.length, 'sessions,', this.students.length, 'students');
-    } catch(e) {
-      console.error('Store.load error:', e);
+    sessions: [],
+    students: [],
+    profile: { full_name: 'Hannah', theme: 'dark', font: "'Be Vietnam Pro',sans-serif" },
+    async load() {
+        try {
+            var r1 = await db.from('sessions').select('*').eq('user_id', CONFIG.USER_ID).order('date', { ascending: true });
+            var r2 = await db.from('students').select('*').eq('user_id', CONFIG.USER_ID).order('created_at', { ascending: true });
+            var r3 = await db.from('profiles').select('*').eq('id', CONFIG.USER_ID).single();
+            this.sessions = r1.data || [];
+            this.students = r2.data || [];
+            if (r3.data) this.profile = r3.data;
+            console.log('✅ Loaded:', this.sessions.length, 'sessions,', this.students.length, 'students');
+        } catch (e) {
+            console.error('❌ Store.load error:', e);
+        }
     }
-  }
 };

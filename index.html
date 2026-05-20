@@ -2,10 +2,10 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClassSchedule</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,7 +13,10 @@
 <body data-theme="dark">
 <div class="app">
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-logo"><div class="logo-icon">📅</div><div class="logo-text">Class<span>Schedule</span></div></div>
+        <div class="sidebar-logo">
+            <div class="logo-icon">📅</div>
+            <div class="logo-text">Class<span>Schedule</span></div>
+        </div>
         <nav class="sidebar-menu">
             <a href="#" class="menu-item active" data-tab="welcome"><i>🏠</i><span>Chào mừng</span></a>
             <a href="#" class="menu-item" data-tab="schedule"><i>📋</i><span>Lịch dạy</span></a>
@@ -22,58 +25,183 @@
             <a href="#" class="menu-item" data-tab="students"><i>👩‍🎓</i><span>Học viên</span></a>
             <a href="#" class="menu-item" data-tab="profile"><i>⚙️</i><span>Hồ sơ</span></a>
         </nav>
-        <div class="sidebar-bottom"><div class="sync-badge" id="sync-status">✅ Synced</div></div>
+        <div class="sidebar-bottom">
+            <div class="sync-badge" id="sync-status">✅ Synced</div>
+        </div>
     </aside>
+
     <main class="main">
-        <header class="header"><button class="hamburger" id="hamburger">☰</button><h1 class="header-title" id="header-title">Chào mừng</h1></header>
+        <header class="header">
+            <button class="hamburger" id="hamburger">☰</button>
+            <h1 class="header-title" id="header-title">Chào mừng</h1>
+        </header>
+
         <div class="page-wrap">
+            <!-- WELCOME -->
             <section class="page active" id="page-welcome">
-                <div class="welcome-banner"><div class="welcome-text"><h2>Xin chào, <span id="welcome-name">Hannah</span> 👋</h2><p>Quản lý lịch dạy thông minh, mọi lúc mọi nơi.</p><button class="btn btn-glow" onclick="switchTab('schedule')">📋 Mở lịch dạy</button></div></div>
+                <div class="welcome-banner">
+                    <div class="welcome-text">
+                        <h2>Xin chào, <span id="welcome-name">Hannah</span> 👋</h2>
+                        <p>Quản lý lịch dạy thông minh, mọi lúc mọi nơi.</p>
+                        <button class="btn btn-glow" onclick="switchTab('schedule')">📋 Mở lịch dạy</button>
+                    </div>
+                </div>
                 <div class="grid-4">
                     <div class="card-stat"><div class="card-stat-icon">👩‍🎓</div><div class="card-stat-value" id="w-students">0</div><div class="card-stat-label">Học viên</div></div>
                     <div class="card-stat"><div class="card-stat-icon">📚</div><div class="card-stat-value" id="w-week">0</div><div class="card-stat-label">Buổi tuần này</div></div>
                     <div class="card-stat"><div class="card-stat-icon">💰</div><div class="card-stat-value" id="w-salary">0đ</div><div class="card-stat-label">Tổng lương</div></div>
                     <div class="card-stat"><div class="card-stat-icon">⏱️</div><div class="card-stat-value" id="w-hours">0h</div><div class="card-stat-label">Giờ tháng này</div></div>
                 </div>
-                <div class="card"><div class="card-header"><h3>📌 Buổi dạy sắp tới</h3></div><div class="card-body" id="upcoming-list"><p class="muted">Chưa có buổi dạy nào.</p></div></div>
+                <div class="card">
+                    <div class="card-header"><h3>📌 Buổi dạy sắp tới</h3></div>
+                    <div class="card-body" id="upcoming-list"><p class="muted">Chưa có buổi dạy nào.</p></div>
+                </div>
             </section>
+
+            <!-- SCHEDULE -->
             <section class="page" id="page-schedule">
-                <div class="toolbar"><button class="btn btn-primary" onclick="switchTab('add-session')">➕ Thêm buổi</button><button class="btn btn-outline" onclick="exportPDF()">📄 PDF</button><button class="btn btn-outline" onclick="exportExcel()">📊 Excel</button><button class="btn btn-outline" onclick="switchTab('stats')">📈 Thống kê</button><button class="btn btn-outline" onclick="shareSchedule()">🔗 Chia sẻ</button></div>
-                <div class="view-tabs"><button class="vtab active" data-view="week">Tuần</button><button class="vtab" data-view="month">Tháng</button><button class="vtab" data-view="day">Ngày</button></div>
-                <div class="cal-nav"><button class="btn btn-icon" id="nav-prev">‹</button><span class="cal-nav-title" id="cal-nav-title"></span><button class="btn btn-icon" id="nav-next">›</button><button class="btn btn-sm btn-outline" id="nav-today">Hôm nay</button></div>
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="switchTab('add-session')">➕ Thêm buổi</button>
+                    <button class="btn btn-outline" onclick="exportPDF()">📄 PDF</button>
+                    <button class="btn btn-outline" onclick="exportExcel()">📊 Excel</button>
+                    <button class="btn btn-outline" onclick="switchTab('stats')">📈 Thống kê</button>
+                    <button class="btn btn-outline" onclick="shareSchedule()">🔗 Chia sẻ</button>
+                </div>
+                <div class="view-tabs">
+                    <button class="vtab active" data-view="week">Tuần</button>
+                    <button class="vtab" data-view="month">Tháng</button>
+                    <button class="vtab" data-view="day">Ngày</button>
+                </div>
+                <div class="cal-nav">
+                    <button class="btn btn-icon" id="nav-prev">‹</button>
+                    <span class="cal-nav-title" id="cal-nav-title"></span>
+                    <button class="btn btn-icon" id="nav-next">›</button>
+                    <button class="btn btn-today" id="nav-today">Hôm nay</button>
+                </div>
                 <div id="calendar-root"></div>
             </section>
+
+            <!-- ADD SESSION -->
             <section class="page" id="page-add-session">
-                <div class="card form-card"><div class="card-header"><h3>➕ Thêm buổi dạy</h3></div><form id="session-form" class="form" style="padding:20px 24px">
-                    <div class="field"><label>Học viên</label><select id="f-student" required><option value="">-- Chọn --</option></select></div>
-                    <div class="field"><label>Bài giảng</label><input type="text" id="f-lesson" required placeholder="VD: Unit 5 - Reading"></div>
-                    <div class="field"><label>Học phí (VNĐ)</label><input type="number" id="f-fee" required placeholder="200000"></div>
-                    <div class="field"><label>Ngày học</label><input type="date" id="f-date" required></div>
-                    <div class="field-row"><div class="field"><label>Giờ bắt đầu</label><input type="time" id="f-start" required></div><div class="field"><label>Giờ kết thúc</label><input type="time" id="f-end" required></div></div>
-                    <div class="field"><label>Ghi chú</label><textarea id="f-note" rows="3" placeholder="Tùy chọn..."></textarea></div>
-                    <div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="switchTab('schedule')">❌ Hủy</button></div>
-                </form></div>
+                <div class="card form-card">
+                    <div class="card-header"><h3>➕ Thêm buổi dạy</h3></div>
+                    <form id="session-form" class="form">
+                        <div class="field"><label>Học viên</label><select id="f-student" required><option value="">-- Chọn --</option></select></div>
+                        <div class="field"><label>Bài giảng</label><input type="text" id="f-lesson" required placeholder="VD: Unit 5 - Reading"></div>
+                        <div class="field"><label>Học phí (VNĐ)</label><input type="number" id="f-fee" required placeholder="200000"></div>
+                        <div class="field"><label>Ngày học</label><input type="date" id="f-date" required></div>
+                        <div class="field-row">
+                            <div class="field"><label>Giờ bắt đầu</label><input type="time" id="f-start" required></div>
+                            <div class="field"><label>Giờ kết thúc</label><input type="time" id="f-end" required></div>
+                        </div>
+                        <div class="field"><label>Ghi chú</label><textarea id="f-note" rows="3" placeholder="Tùy chọn..."></textarea></div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 Lưu</button>
+                            <button type="button" class="btn btn-ghost" onclick="switchTab('schedule')">❌ Hủy</button>
+                        </div>
+                    </form>
+                </div>
             </section>
+
+            <!-- STATS -->
             <section class="page" id="page-stats">
-                <div class="inline-header"><h3>📊 Thống kê</h3><div class="view-tabs small"><button class="vtab active" data-period="week">Tuần</button><button class="vtab" data-period="month">Tháng</button></div></div>
-                <div class="grid-3"><div class="card-stat glow"><div class="card-stat-value" id="s-sessions">0</div><div class="card-stat-label">Tổng buổi</div></div><div class="card-stat glow"><div class="card-stat-value" id="s-students">0</div><div class="card-stat-label">Học viên</div></div><div class="card-stat glow"><div class="card-stat-value" id="s-revenue">0đ</div><div class="card-stat-label">Doanh thu</div></div></div>
+                <div class="inline-header">
+                    <h3>📊 Thống kê</h3>
+                    <div class="view-tabs small">
+                        <button class="vtab active" data-period="week">Tuần</button>
+                        <button class="vtab" data-period="month">Tháng</button>
+                    </div>
+                </div>
+                <div class="grid-3">
+                    <div class="card-stat glow"><div class="card-stat-value" id="s-sessions">0</div><div class="card-stat-label">Tổng buổi</div></div>
+                    <div class="card-stat glow"><div class="card-stat-value" id="s-students">0</div><div class="card-stat-label">Học viên</div></div>
+                    <div class="card-stat glow"><div class="card-stat-value" id="s-revenue">0đ</div><div class="card-stat-label">Doanh thu</div></div>
+                </div>
                 <div class="card"><div class="card-header"><h3>📋 Chi tiết</h3></div><div class="card-body" id="stats-list"><p class="muted">Chưa có dữ liệu.</p></div></div>
             </section>
+
+            <!-- STUDENTS -->
             <section class="page" id="page-students">
-                <div class="toolbar"><h3>👩‍🎓 Học viên</h3><button class="btn btn-primary" onclick="openModal()">➕ Thêm học viên</button></div>
+                <div class="toolbar">
+                    <h3>👩‍🎓 Học viên</h3>
+                    <button class="btn btn-primary" onclick="openModal()">➕ Thêm học viên</button>
+                </div>
                 <div id="students-root"><p class="muted">Chưa có học viên nào.</p></div>
             </section>
+
+            <!-- PROFILE -->
             <section class="page" id="page-profile">
-                <div class="card form-card"><div class="card-header"><h3>⚙️ Hồ sơ & Cài đặt</h3></div><div class="form" style="padding:20px 24px">
-                    <div class="field"><label>Họ tên giáo viên</label><input type="text" id="p-name" placeholder="Nhập tên..."><button class="btn btn-primary btn-sm" onclick="saveProfile()" style="margin-top:8px">Lưu</button></div>
-                    <div class="field"><label>Giao diện</label><div class="toggle-row"><button class="toggle" id="t-light" onclick="setTheme('light')">☀️ Sáng</button><button class="toggle active" id="t-dark" onclick="setTheme('dark')">🌙 Tối</button></div></div>
-                    <div class="field"><label>Font chữ</label><select id="p-font" onchange="setFont(this.value)"><option value="'Inter',sans-serif">Inter</option><option value="'Georgia',serif">Georgia</option><option value="'Courier New',monospace">Courier New</option><option value="'Arial',sans-serif">Arial</option></select></div>
-                </div></div>
+                <div class="card form-card">
+                    <div class="card-header"><h3>⚙️ Hồ sơ & Cài đặt</h3></div>
+                    <div class="form">
+                        <div class="field">
+                            <label>Họ tên giáo viên</label>
+                            <input type="text" id="p-name" placeholder="Nhập tên...">
+                            <button class="btn btn-primary btn-sm" onclick="saveProfile()" style="margin-top:8px">Lưu tên</button>
+                        </div>
+                        <div class="field">
+                            <label>Giao diện</label>
+                            <div class="toggle-row">
+                                <button class="toggle" id="t-light" onclick="setTheme('light')">☀️ Sáng</button>
+                                <button class="toggle active" id="t-dark" onclick="setTheme('dark')">🌙 Tối</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>Font chữ nội dung</label>
+                            <select id="p-font" onchange="setFont(this.value)">
+                                <option value="'Be Vietnam Pro',sans-serif">Be Vietnam Pro</option>
+                                <option value="'Inter',sans-serif">Inter</option>
+                                <option value="'Nunito',sans-serif">Nunito</option>
+                                <option value="'Roboto',sans-serif">Roboto</option>
+                            </select>
+                        </div>
+                        <div class="field danger-zone">
+                            <label>Vùng nguy hiểm</label>
+                            <button class="btn btn-danger" id="btn-nuke" onclick="confirmNuke()">🗑️ Xóa toàn bộ dữ liệu</button>
+                        </div>
+                    </div>
+                </div>
             </section>
         </div>
     </main>
 </div>
-<div class="modal-backdrop" id="modal" hidden><div class="modal-box"><div class="modal-top"><h3>Thêm học viên</h3><button class="modal-x" onclick="closeModal()">✕</button></div><form id="student-form" class="form"><div class="field"><label>Họ tên</label><input type="text" id="s-name" required placeholder="Nguyễn Văn A"></div><div class="field"><label>Chương trình học</label><input type="text" id="s-program" placeholder="IELTS / Piano..."></div><div class="field"><label>Level</label><select id="s-level"><option>Beginner</option><option>Elementary</option><option>Intermediate</option><option>Upper-Intermediate</option><option>Advanced</option></select></div><div class="field"><label>Nhận xét</label><textarea id="s-review" rows="2" placeholder="Nhận xét..."></textarea></div><div class="field"><label>Ghi chú</label><textarea id="s-note" rows="2" placeholder="Ghi chú..."></textarea></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeModal()">Hủy</button></div></form></div></div>
-<script src="js/config.js"></script><script src="js/db.js"></script><script src="js/ui.js"></script><script src="js/calendar.js"></script><script src="js/stats.js"></script><script src="js/students.js"></script><script src="js/sessions.js"></script><script src="js/export.js"></script><script src="js/profile.js"></script><script src="js/app.js"></script>
+
+<!-- MODAL: Add student -->
+<div class="modal-backdrop" id="modal" hidden>
+    <div class="modal-box">
+        <div class="modal-top"><h3>Thêm học viên</h3><button class="modal-x" onclick="closeModal()">✕</button></div>
+        <form id="student-form" class="form">
+            <div class="field"><label>Họ tên</label><input type="text" id="s-name" required placeholder="Nguyễn Văn A"></div>
+            <div class="field"><label>Chương trình học</label><input type="text" id="s-program" placeholder="IELTS / Piano..."></div>
+            <div class="field"><label>Level</label><select id="s-level"><option>Beginner</option><option>Elementary</option><option>Intermediate</option><option>Upper-Intermediate</option><option>Advanced</option></select></div>
+            <div class="field"><label>Nhận xét</label><textarea id="s-review" rows="2" placeholder="Nhận xét..."></textarea></div>
+            <div class="field"><label>Ghi chú</label><textarea id="s-note" rows="2" placeholder="Ghi chú..."></textarea></div>
+            <div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeModal()">Hủy</button></div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: Confirm Delete All -->
+<div class="modal-backdrop" id="modal-nuke" hidden>
+    <div class="modal-box modal-danger">
+        <div class="modal-top"><h3>⚠️ Xác nhận xóa</h3><button class="modal-x" onclick="closeNuke()">✕</button></div>
+        <p style="margin-bottom:16px;color:var(--text2)">Bạn có chắc muốn <strong style="color:var(--danger)">XÓA TOÀN BỘ</strong> dữ liệu (học viên, buổi dạy)? Hành động này không thể hoàn tác!</p>
+        <div class="form-actions">
+            <button class="btn btn-danger" onclick="nukeData()">🗑️ Xóa hết</button>
+            <button class="btn btn-ghost" onclick="closeNuke()">Hủy</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/students.js"></script>
+<script src="js/sessions.js"></script>
+<script src="js/export.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
