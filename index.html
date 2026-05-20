@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClassSchedule — Quản lý lịch dạy</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body data-theme="light">
+
+    <!-- AUTH SCREEN -->
+    <div class="auth-screen" id="auth-screen">
+        <div class="auth-card">
+            <div class="auth-brand">📅 ClassSchedule</div>
+            <p class="auth-subtitle">Đăng nhập để đồng bộ dữ liệu mọi thiết bị</p>
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tab-login-btn" onclick="showAuthTab('login')">Đăng nhập</button>
+                <button class="auth-tab" id="tab-register-btn" onclick="showAuthTab('register')">Đăng ký</button>
+            </div>
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="login-email" required placeholder="email@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label>Mật khẩu</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Đăng nhập</button>
+            </form>
+            <form id="register-form" class="auth-form" hidden>
+                <div class="form-group">
+                    <label>Họ tên</label>
+                    <input type="text" id="reg-name" required placeholder="Nguyễn Văn A">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="reg-email" required placeholder="email@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label>Mật khẩu (tối thiểu 6 ký tự)</label>
+                    <input type="password" id="reg-password" required placeholder="••••••••" minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Đăng ký</button>
+            </form>
+            <p class="auth-error" id="auth-error" hidden></p>
+        </div>
+    </div>
+
+    <!-- APP -->
+    <div class="app-container" id="app-container" hidden>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <span class="brand-icon">📅</span>
+                <span class="brand-text">ClassSchedule</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-tab="welcome"><span class="nav-icon">🏠</span><span>Chào mừng</span></a>
+                <a href="#" class="nav-link" data-tab="schedule"><span class="nav-icon">📋</span><span>Lịch dạy</span></a>
+                <a href="#" class="nav-link" data-tab="add-session"><span class="nav-icon">➕</span><span>Thêm buổi</span></a>
+                <a href="#" class="nav-link" data-tab="stats"><span class="nav-icon">📊</span><span>Thống kê</span></a>
+                <a href="#" class="nav-link" data-tab="students"><span class="nav-icon">👩‍🎓</span><span>Học viên</span></a>
+                <a href="#" class="nav-link" data-tab="profile"><span class="nav-icon">⚙️</span><span>Hồ sơ</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-secondary btn-sm btn-full" onclick="logout()">🚪 Đăng xuất</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <button class="menu-toggle" id="menu-toggle">☰</button>
+                <h1 class="topbar-title" id="topbar-title">Chào mừng</h1>
+                <span class="topbar-sync" id="sync-status">✅ Đã đồng bộ</span>
+            </header>
+
+            <div class="content-wrap">
+                <!-- TAB 1: CHÀO MỪNG -->
+                <section class="tab-content active" id="tab-welcome">
+                    <div class="welcome-header">
+                        <h2>Chào mừng, <span id="welcome-name">Giáo viên</span>! 👋</h2>
+                        <button class="btn btn-primary" onclick="switchTab('schedule')">📋 Mở lịch dạy</button>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-number" id="stat-students">0</div><div class="stat-label">Tổng học viên</div></div>
+                        <div class="stat-card"><div class="stat-number" id="stat-week-sessions">0</div><div class="stat-label">Buổi tuần này</div></div>
+                        <div class="stat-card"><div class="stat-number" id="stat-salary">0đ</div><div class="stat-label">Tổng lương</div></div>
+                        <div class="stat-card"><div class="stat-number" id="stat-hours">0h</div><div class="stat-label">Giờ làm tháng này</div></div>
+                    </div>
+                    <div class="section-box">
+                        <h3>📌 Buổi dạy gần nhất</h3>
+                        <div id="upcoming-sessions"><p class="empty-state">Chưa có buổi dạy nào.</p></div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: LỊCH DẠY -->
+                <section class="tab-content" id="tab-schedule">
+                    <div class="schedule-toolbar">
+                        <button class="btn btn-primary" onclick="switchTab('add-session')">➕ Thêm buổi</button>
+                        <button class="btn btn-secondary" onclick="exportPDF()">📄 Xuất PDF</button>
+                        <button class="btn btn-secondary" onclick="exportExcel()">📊 Xuất Excel</button>
+                        <button class="btn btn-secondary" onclick="switchTab('stats')">📈 Thống kê</button>
+                        <button class="btn btn-secondary" onclick="shareSchedule()">🔗 Chia sẻ lịch</button>
+                    </div>
+                    <div class="view-switcher">
+                        <button class="view-btn active" data-view="week">Tuần</button>
+                        <button class="view-btn" data-view="month">Tháng</button>
+                        <button class="view-btn" data-view="day">Ngày</button>
+                    </div>
+                    <div class="calendar-nav">
+                        <button class="btn btn-icon" id="cal-prev">◀</button>
+                        <span id="cal-title">Tuần này</span>
+                        <button class="btn btn-icon" id="cal-next">▶</button>
+                        <button class="btn btn-sm" id="cal-today">Hôm nay</button>
+                    </div>
+                    <div class="calendar-container" id="calendar-container"></div>
+                </section>
+
+                <!-- TAB 3: THÊM BUỔI -->
+                <section class="tab-content" id="tab-add-session">
+                    <div class="form-card">
+                        <h2>Thêm buổi dạy mới</h2>
+                        <form id="session-form">
+                            <div class="form-group"><label>Học viên</label><select id="form-student" required><option value="">-- Chọn học viên --</option></select></div>
+                            <div class="form-group"><label>Bài giảng</label><input type="text" id="form-lesson" placeholder="Tên bài giảng" required></div>
+                            <div class="form-group"><label>Học phí (VNĐ)</label><input type="number" id="form-fee" placeholder="200000" required></div>
+                            <div class="form-group"><label>Ngày học</label><input type="date" id="form-date" required></div>
+                            <div class="form-row">
+                                <div class="form-group"><label>Giờ bắt đầu</label><input type="time" id="form-start" required></div>
+                                <div class="form-group"><label>Giờ kết thúc</label><input type="time" id="form-end" required></div>
+                            </div>
+                            <div class="form-group"><label>Ghi chú (tùy chọn)</label><textarea id="form-note" rows="3" placeholder="Ghi chú thêm..."></textarea></div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">💾 Lưu</button>
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('session-form').reset()">❌ Hủy</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- TAB 4: THỐNG KÊ -->
+                <section class="tab-content" id="tab-stats">
+                    <div class="stats-header">
+                        <h2>Thống kê</h2>
+                        <div class="stats-period-switcher">
+                            <button class="period-btn active" data-period="week">Theo tuần</button>
+                            <button class="period-btn" data-period="month">Theo tháng</button>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card stat-card-lg"><div class="stat-number" id="stats-total-sessions">0</div><div class="stat-label">Tổng số buổi</div></div>
+                        <div class="stat-card stat-card-lg"><div class="stat-number" id="stats-total-students">0</div><div class="stat-label">Học viên đang dạy</div></div>
+                        <div class="stat-card stat-card-lg"><div class="stat-number" id="stats-total-revenue">0đ</div><div class="stat-label">Doanh thu ước tính</div></div>
+                    </div>
+                    <div class="section-box">
+                        <h3>📋 Chi tiết buổi dạy</h3>
+                        <div id="stats-detail-list"><p class="empty-state">Chưa có dữ liệu.</p></div>
+                    </div>
+                </section>
+
+                <!-- TAB 5: HỌC VIÊN -->
+                <section class="tab-content" id="tab-students">
+                    <div class="students-toolbar">
+                        <h2>Quản lý học viên</h2>
+                        <button class="btn btn-primary" onclick="openStudentModal()">➕ Thêm học viên</button>
+                    </div>
+                    <div id="students-list"><p class="empty-state">Chưa có học viên nào.</p></div>
+                </section>
+
+                <!-- TAB 6: HỒ SƠ -->
+                <section class="tab-content" id="tab-profile">
+                    <div class="form-card">
+                        <h2>Hồ sơ & Cài đặt</h2>
+                        <div class="form-group">
+                            <label>Họ tên giáo viên</label>
+                            <input type="text" id="profile-name" placeholder="Nhập họ tên">
+                            <button class="btn btn-primary btn-sm" onclick="saveProfile()" style="margin-top:8px">Lưu tên</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Giao diện</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn active" id="theme-light" onclick="setTheme('light')">☀️ Sáng</button>
+                                <button class="toggle-btn" id="theme-dark" onclick="setTheme('dark')">🌙 Tối</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Font chữ</label>
+                            <select id="font-select" onchange="setFont(this.value)">
+                                <option value="'Inter', sans-serif">Inter (mặc định)</option>
+                                <option value="'Georgia', serif">Georgia</option>
+                                <option value="'Courier New', monospace">Courier New</option>
+                                <option value="'Arial', sans-serif">Arial</option>
+                            </select>
+                        </div>
+                        <hr style="margin:20px 0;border-color:var(--border)">
+                        <p style="color:var(--text-muted);font-size:0.85rem">Email: <span id="profile-email"></span></p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL THÊM HỌC VIÊN -->
+    <div class="modal-overlay" id="student-modal" hidden>
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Thêm học viên</h3>
+                <button class="modal-close" onclick="closeStudentModal()">✕</button>
+            </div>
+            <form id="student-form">
+                <div class="form-group"><label>Họ tên học viên</label><input type="text" id="student-name" required placeholder="Nguyễn Văn A"></div>
+                <div class="form-group"><label>Chương trình học</label><input type="text" id="student-program" placeholder="IELTS / Toán 12 / Piano..."></div>
+                <div class="form-group"><label>Level</label><select id="student-level"><option value="Beginner">Beginner</option><option value="Elementary">Elementary</option><option value="Intermediate">Intermediate</option><option value="Upper-Intermediate">Upper-Intermediate</option><option value="Advanced">Advanced</option></select></div>
+                <div class="form-group"><label>Nhận xét</label><textarea id="student-review" rows="2" placeholder="Nhận xét..."></textarea></div>
+                <div class="form-group"><label>Ghi chú</label><textarea id="student-note" rows="2" placeholder="Ghi chú..."></textarea></div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Lưu</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeStudentModal()">Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
