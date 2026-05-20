@@ -2,8 +2,8 @@
 // ║  THAY 2 DÒNG NÀY BẰNG THÔNG TIN TỪ SUPABASE DASHBOARD        ║
 // ║  (Settings → API → Project URL và anon public key)             ║
 // ╚══════════════════════════════════════════════════════════════════╝
-const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
+const SUPABASE_URL = 'https://lpcfovgphkbauejqtrqo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwY2ZvdmdwaGtiYXVlanF0cnFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyOTA3NjksImV4cCI6MjA5NDg2Njc2OX0.7SnBI_kxiqYVHJs71V0rUuMEbSaWC6To2QM8WZD7jEg';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
