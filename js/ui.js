@@ -21,18 +21,19 @@ function openGroupModal() { populateGroupMembers(); document.getElementById('mod
 function closeGroupModal() { document.getElementById('modal-group').hidden = true; }
 function confirmNuke() { document.getElementById('modal-nuke').hidden = false; }
 function closeNuke() { document.getElementById('modal-nuke').hidden = true; }
-function closeQuickModal() { document.getElementById('modal-quick').hidden = false ? true : true; document.getElementById('modal-quick').hidden = true; }
-function closeEventModal() { document.getElementById('modal-event').hidden = true; }
+function closeQuickModal() { document.getElementById('modal-quick').hidden = true; }
+function closeEventModal() { document.getElementById('modal-event') && (document.getElementById('modal-event').hidden = true); }
+
+function openRightPanel() { document.getElementById('right-panel').classList.remove('closed'); document.getElementById('right-panel').classList.add('open'); }
+function closeRightPanel() { document.getElementById('right-panel').classList.add('closed'); document.getElementById('right-panel').classList.remove('open'); }
 
 function formatMoney(n) { return Number(n).toLocaleString('vi-VN') + 'đ'; }
-function fmtISO(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function fmtISO(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function fmtDate(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
-function timeDiff(s, e) { var a = s.split(':'), b = e.split(':'); return (parseInt(b[0]) * 60 + parseInt(b[1]) - parseInt(a[0]) * 60 - parseInt(a[1])) / 60; }
-function timeDiffMinutes(s, e) { var a = s.split(':'), b = e.split(':'); return parseInt(b[0]) * 60 + parseInt(b[1]) - parseInt(a[0]) * 60 - parseInt(a[1]); }
-function getWeekStart(d) { var r = new Date(d); var day = r.getDay(); r.setDate(r.getDate() - day + (day === 0 ? -6 : 1)); r.setHours(0, 0, 0, 0); return r; }
-function isSameDay(a, b) { return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear(); }
-
-function calcFee(rate, rateMinutes, actualMinutes) {
-    if (!rate || !rateMinutes || !actualMinutes) return 0;
-    return Math.round((rate / rateMinutes) * actualMinutes);
-}
+function fmtDateLong(iso) { var d = new Date(iso + 'T00:00:00'); var days = ['CN','T2','T3','T4','T5','T6','T7']; return days[d.getDay()] + ', ' + d.getDate() + ' Thg' + (d.getMonth()+1) + ' ' + d.getFullYear(); }
+function timeDiff(s, e) { var a = s.split(':'), b = e.split(':'); return (parseInt(b[0])*60+parseInt(b[1])-parseInt(a[0])*60-parseInt(a[1]))/60; }
+function timeDiffMinutes(s, e) { var a = s.split(':'), b = e.split(':'); return parseInt(b[0])*60+parseInt(b[1])-parseInt(a[0])*60-parseInt(a[1]); }
+function getWeekStart(d) { var r = new Date(d); var day = r.getDay(); r.setDate(r.getDate()-day+(day===0?-6:1)); r.setHours(0,0,0,0); return r; }
+function isSameDay(a, b) { return a.getDate()===b.getDate()&&a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear(); }
+function calcFee(rate, rateMinutes, actualMinutes) { if (!rate||!rateMinutes||!actualMinutes) return 0; return Math.round((rate/rateMinutes)*actualMinutes); }
+function durationLabel(mins) { if (mins < 60) return mins + ' phút'; var h = Math.floor(mins/60); var m = mins%60; return h + ' giờ' + (m ? ' ' + m + ' phút' : ''); }

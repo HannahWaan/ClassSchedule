@@ -23,231 +23,135 @@
             <a href="#" class="menu-item" data-tab="groups"><i>👥</i><span>Nhóm</span></a>
             <a href="#" class="menu-item" data-tab="profile"><i>⚙️</i><span>Hồ sơ</span></a>
         </nav>
+        <!-- Mini Calendar -->
+        <div class="mini-cal" id="mini-cal"></div>
         <div class="sidebar-bottom"><div class="sync-badge" id="sync-status">✅ Synced</div></div>
     </aside>
 
     <main class="main">
         <header class="header"><button class="hamburger" id="hamburger">☰</button><h1 class="header-title" id="header-title">Chào mừng</h1></header>
-        <div class="page-wrap">
+        <div class="content-with-panel">
+            <div class="page-wrap">
 
-            <!-- WELCOME -->
-            <section class="page active" id="page-welcome">
-                <div class="welcome-banner"><div class="welcome-text"><h2>Xin chào, <span id="welcome-name">Hannah</span> 👋</h2><p>Quản lý lịch dạy thông minh, mọi lúc mọi nơi.</p><button class="btn btn-glow" onclick="switchTab('schedule')">📋 Mở lịch dạy</button></div></div>
-                <div class="grid-4">
-                    <div class="card-stat"><div class="card-stat-icon">👩‍🎓</div><div class="card-stat-value" id="w-students">0</div><div class="card-stat-label">Học viên</div></div>
-                    <div class="card-stat"><div class="card-stat-icon">📚</div><div class="card-stat-value" id="w-week">0</div><div class="card-stat-label">Buổi tuần này</div></div>
-                    <div class="card-stat"><div class="card-stat-icon">💰</div><div class="card-stat-value" id="w-salary">0đ</div><div class="card-stat-label">Tổng lương</div></div>
-                    <div class="card-stat"><div class="card-stat-icon">⏱️</div><div class="card-stat-value" id="w-hours">0h</div><div class="card-stat-label">Giờ tháng này</div></div>
-                </div>
-                <div class="card"><div class="card-header"><h3>📌 Buổi dạy sắp tới</h3></div><div class="card-body" id="upcoming-list"><p class="muted">Chưa có buổi dạy nào.</p></div></div>
-            </section>
-
-            <!-- SCHEDULE -->
-            <section class="page" id="page-schedule">
-                <div class="toolbar">
-                    <button class="btn btn-primary" onclick="switchTab('add-session')">➕ Thêm buổi</button>
-                    <button class="btn btn-outline" onclick="exportPDF()">📄 PDF</button>
-                    <button class="btn btn-outline" onclick="exportExcel()">📊 Excel</button>
-                    <button class="btn btn-outline" onclick="switchTab('stats')">📈 Thống kê</button>
-                    <button class="btn btn-outline" onclick="shareSchedule()">🔗 Chia sẻ</button>
-                </div>
-                <div class="view-tabs">
-                    <button class="vtab active" data-view="week">Tuần</button>
-                    <button class="vtab" data-view="month">Tháng</button>
-                    <button class="vtab" data-view="day">Ngày</button>
-                </div>
-                <div class="cal-nav">
-                    <button class="btn btn-icon" id="nav-prev">‹</button>
-                    <span class="cal-nav-title" id="cal-nav-title"></span>
-                    <button class="btn btn-icon" id="nav-next">›</button>
-                    <button class="btn btn-today" id="nav-today">Hôm nay</button>
-                </div>
-                <div id="calendar-root"></div>
-            </section>
-
-            <!-- ADD SESSION -->
-            <section class="page" id="page-add-session">
-                <div class="card form-card">
-                    <div class="card-header"><h3>➕ Thêm buổi dạy</h3></div>
-                    <form id="session-form" class="form">
-                        <div class="field">
-                            <label>Loại buổi dạy</label>
-                            <div class="toggle-row">
-                                <button type="button" class="toggle active" id="type-individual" onclick="setSessionType('individual')">👤 Cá nhân</button>
-                                <button type="button" class="toggle" id="type-group" onclick="setSessionType('group')">👥 Nhóm</button>
-                            </div>
-                        </div>
-                        <div class="field" id="field-student"><label>Học viên</label><select id="f-student"><option value="">-- Chọn --</option></select></div>
-                        <div class="field" id="field-group" style="display:none"><label>Nhóm</label><select id="f-group"><option value="">-- Chọn nhóm --</option></select></div>
-                        <div class="field"><label>Bài giảng</label><input type="text" id="f-lesson" required placeholder="VD: Unit 5 - Reading"></div>
-                        <div class="field"><label>Ngày học</label><input type="date" id="f-date" required></div>
-                        <div class="field-row">
-                            <div class="field"><label>Giờ bắt đầu</label><input type="time" id="f-start" required></div>
-                            <div class="field"><label>Giờ kết thúc</label><input type="time" id="f-end" required></div>
-                        </div>
-                        <div class="field fee-display">
-                            <label>Học phí (tự động)</label>
-                            <div class="auto-fee-box">
-                                <span class="fee-value" id="f-fee-display">0đ</span>
-                                <span class="fee-detail" id="f-fee-detail">Chọn học viên/nhóm và thời gian để tính</span>
-                            </div>
-                            <input type="hidden" id="f-fee" value="0">
-                        </div>
-                        <div class="field"><label>Ghi chú</label><textarea id="f-note" rows="3" placeholder="Tùy chọn..."></textarea></div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">💾 Lưu</button>
-                            <button type="button" class="btn btn-ghost" onclick="switchTab('schedule')">❌ Hủy</button>
-                        </div>
-                    </form>
-                </div>
-            </section>
-
-            <!-- STATS -->
-            <section class="page" id="page-stats">
-                <div class="inline-header"><h3>📊 Thống kê</h3><div class="view-tabs small"><button class="vtab active" data-period="week">Tuần</button><button class="vtab" data-period="month">Tháng</button></div></div>
-                <div class="grid-3">
-                    <div class="card-stat glow"><div class="card-stat-value" id="s-sessions">0</div><div class="card-stat-label">Tổng buổi</div></div>
-                    <div class="card-stat glow"><div class="card-stat-value" id="s-students">0</div><div class="card-stat-label">Học viên</div></div>
-                    <div class="card-stat glow"><div class="card-stat-value" id="s-revenue">0đ</div><div class="card-stat-label">Doanh thu</div></div>
-                </div>
-                <div class="card"><div class="card-header"><h3>📋 Chi tiết</h3></div><div class="card-body" id="stats-list"><p class="muted">Chưa có dữ liệu.</p></div></div>
-            </section>
-
-            <!-- STUDENTS -->
-            <section class="page" id="page-students">
-                <div class="toolbar"><h3>👩‍🎓 Học viên</h3><button class="btn btn-primary" onclick="openStudentModal()">➕ Thêm học viên</button></div>
-                <div id="students-root"><p class="muted">Chưa có học viên nào.</p></div>
-            </section>
-
-            <!-- GROUPS -->
-            <section class="page" id="page-groups">
-                <div class="toolbar"><h3>👥 Nhóm học</h3><button class="btn btn-primary" onclick="openGroupModal()">➕ Tạo nhóm</button></div>
-                <div id="groups-root"><p class="muted">Chưa có nhóm nào.</p></div>
-            </section>
-
-            <!-- PROFILE -->
-            <section class="page" id="page-profile">
-                <div class="profile-layout">
-                    <div class="profile-card avatar-section">
-                        <div class="profile-avatar">👩‍🏫</div>
-                        <h2 class="profile-display-name" id="profile-display-name">Hannah</h2>
-                        <p class="profile-subtitle">Giáo viên</p>
+                <!-- WELCOME -->
+                <section class="page active" id="page-welcome">
+                    <div class="welcome-banner"><div class="welcome-text"><h2>Xin chào, <span id="welcome-name">Hannah</span> 👋</h2><p>Quản lý lịch dạy thông minh, mọi lúc mọi nơi.</p><button class="btn btn-glow" onclick="switchTab('schedule')">📋 Mở lịch dạy</button></div></div>
+                    <div class="grid-4">
+                        <div class="card-stat"><div class="card-stat-icon">👩‍🎓</div><div class="card-stat-value" id="w-students">0</div><div class="card-stat-label">Học viên</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">📚</div><div class="card-stat-value" id="w-week">0</div><div class="card-stat-label">Buổi tuần này</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">💰</div><div class="card-stat-value" id="w-salary">0đ</div><div class="card-stat-label">Tổng lương</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">⏱️</div><div class="card-stat-value" id="w-hours">0h</div><div class="card-stat-label">Giờ tháng này</div></div>
                     </div>
-                    <div class="profile-card settings-section">
-                        <div class="settings-group">
-                            <div class="settings-group-title">📝 Thông tin</div>
-                            <div class="field"><label>Họ tên</label><input type="text" id="p-name" placeholder="Nhập tên..."></div>
-                            <button class="btn btn-primary btn-sm" onclick="saveProfile()">💾 Lưu tên</button>
-                        </div>
-                        <div class="settings-group">
-                            <div class="settings-group-title">🎨 Giao diện</div>
-                            <div class="toggle-row"><button class="toggle" id="t-light" onclick="setTheme('light')">☀️ Sáng</button><button class="toggle active" id="t-dark" onclick="setTheme('dark')">🌙 Tối</button></div>
-                        </div>
-                        <div class="settings-group">
-                            <div class="settings-group-title">🔤 Font chữ</div>
-                            <select id="p-font" onchange="setFont(this.value)" class="field-select">
-                                <option value="'Be Vietnam Pro',sans-serif">Be Vietnam Pro</option>
-                                <option value="'Inter',sans-serif">Inter</option>
-                                <option value="'Nunito',sans-serif">Nunito</option>
-                                <option value="'Roboto',sans-serif">Roboto</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="profile-card danger-section">
-                        <div class="settings-group-title">⚠️ Vùng nguy hiểm</div>
-                        <p class="danger-desc">Xóa toàn bộ buổi dạy và học viên. Không thể hoàn tác.</p>
-                        <button class="btn btn-danger" onclick="confirmNuke()">🗑️ Xóa toàn bộ dữ liệu</button>
-                    </div>
-                </div>
-            </section>
+                    <div class="card"><div class="card-header"><h3>📌 Buổi dạy sắp tới</h3></div><div class="card-body" id="upcoming-list"><p class="muted">Chưa có buổi dạy nào.</p></div></div>
+                </section>
 
+                <!-- SCHEDULE -->
+                <section class="page" id="page-schedule">
+                    <div class="toolbar">
+                        <button class="btn btn-primary" onclick="switchTab('add-session')">➕ Thêm buổi</button>
+                        <button class="btn btn-outline" onclick="exportPDF()">📄 PDF</button>
+                        <button class="btn btn-outline" onclick="exportExcel()">📊 Excel</button>
+                        <button class="btn btn-outline" onclick="switchTab('stats')">📈 Thống kê</button>
+                        <button class="btn btn-outline" onclick="shareSchedule()">🔗 Chia sẻ</button>
+                    </div>
+                    <div class="view-tabs">
+                        <button class="vtab active" data-view="week">Tuần</button>
+                        <button class="vtab" data-view="month">Tháng</button>
+                        <button class="vtab" data-view="day">Ngày</button>
+                    </div>
+                    <div class="cal-nav">
+                        <button class="btn btn-icon" id="nav-prev">‹</button>
+                        <span class="cal-nav-title" id="cal-nav-title"></span>
+                        <button class="btn btn-icon" id="nav-next">›</button>
+                        <button class="btn btn-today" id="nav-today">Hôm nay</button>
+                    </div>
+                    <div id="calendar-root"></div>
+                </section>
+
+                <!-- ADD SESSION -->
+                <section class="page" id="page-add-session">
+                    <div class="card form-card">
+                        <div class="card-header"><h3>➕ Thêm buổi dạy</h3></div>
+                        <form id="session-form" class="form">
+                            <div class="field"><label>Loại</label><div class="toggle-row"><button type="button" class="toggle active" id="type-individual" onclick="setSessionType('individual')">👤 Cá nhân</button><button type="button" class="toggle" id="type-group" onclick="setSessionType('group')">👥 Nhóm</button></div></div>
+                            <div class="field" id="field-student"><label>Học viên</label><select id="f-student"><option value="">-- Chọn --</option></select></div>
+                            <div class="field" id="field-group" style="display:none"><label>Nhóm</label><select id="f-group"><option value="">-- Chọn nhóm --</option></select></div>
+                            <div class="field"><label>Bài giảng</label><input type="text" id="f-lesson" required placeholder="VD: Unit 5 - Reading"></div>
+                            <div class="field"><label>Ngày học</label><input type="date" id="f-date" required></div>
+                            <div class="field-row"><div class="field"><label>Giờ bắt đầu</label><input type="time" id="f-start" required></div><div class="field"><label>Giờ kết thúc</label><input type="time" id="f-end" required></div></div>
+                            <div class="field fee-display"><label>Học phí (tự động)</label><div class="auto-fee-box"><span class="fee-value" id="f-fee-display">0đ</span><span class="fee-detail" id="f-fee-detail">Chọn học viên/nhóm và thời gian để tính</span></div><input type="hidden" id="f-fee" value="0"></div>
+                            <div class="field"><label>Địa điểm</label><input type="text" id="f-location" placeholder="Quán cafe / Online..."></div>
+                            <div class="field"><label>Lặp lại</label><select id="f-repeat"><option value="none">Không lặp</option><option value="weekly">Mỗi tuần</option><option value="biweekly">Mỗi 2 tuần</option></select></div>
+                            <div class="field"><label>Nhắc nhở</label><select id="f-reminder"><option value="0">Không</option><option value="10">10 phút trước</option><option value="30" selected>30 phút trước</option><option value="60">1 giờ trước</option></select></div>
+                            <div class="field"><label>Ghi chú</label><textarea id="f-note" rows="3" placeholder="Tùy chọn..."></textarea></div>
+                            <div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="switchTab('schedule')">❌ Hủy</button></div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- STATS -->
+                <section class="page" id="page-stats">
+                    <div class="inline-header"><h3>📊 Thống kê</h3><div class="view-tabs small"><button class="vtab active" data-period="week">Tuần</button><button class="vtab" data-period="month">Tháng</button></div></div>
+                    <div class="grid-3">
+                        <div class="card-stat glow"><div class="card-stat-value" id="s-sessions">0</div><div class="card-stat-label">Tổng buổi</div></div>
+                        <div class="card-stat glow"><div class="card-stat-value" id="s-students">0</div><div class="card-stat-label">Học viên</div></div>
+                        <div class="card-stat glow"><div class="card-stat-value" id="s-revenue">0đ</div><div class="card-stat-label">Doanh thu</div></div>
+                    </div>
+                    <div class="card"><div class="card-header"><h3>📋 Chi tiết</h3></div><div class="card-body" id="stats-list"><p class="muted">Chưa có dữ liệu.</p></div></div>
+                </section>
+
+                <!-- STUDENTS -->
+                <section class="page" id="page-students">
+                    <div class="toolbar"><h3>👩‍🎓 Học viên</h3><button class="btn btn-primary" onclick="openStudentModal()">➕ Thêm học viên</button></div>
+                    <div id="students-root"><p class="muted">Chưa có học viên nào.</p></div>
+                </section>
+
+                <!-- GROUPS -->
+                <section class="page" id="page-groups">
+                    <div class="toolbar"><h3>👥 Nhóm học</h3><button class="btn btn-primary" onclick="openGroupModal()">➕ Tạo nhóm</button></div>
+                    <div id="groups-root"><p class="muted">Chưa có nhóm nào.</p></div>
+                </section>
+
+                <!-- PROFILE -->
+                <section class="page" id="page-profile">
+                    <div class="profile-layout">
+                        <div class="profile-card avatar-section">
+                            <div class="profile-avatar">👩‍🏫</div>
+                            <h2 class="profile-display-name" id="profile-display-name">Hannah</h2>
+                            <p class="profile-subtitle">Giáo viên</p>
+                        </div>
+                        <div class="profile-card settings-section">
+                            <div class="settings-group"><div class="settings-group-title">📝 Thông tin</div><div class="field"><label>Họ tên</label><input type="text" id="p-name" placeholder="Nhập tên..."></div><button class="btn btn-primary btn-sm" onclick="saveProfile()">💾 Lưu tên</button></div>
+                            <div class="settings-group"><div class="settings-group-title">🎨 Giao diện</div><div class="toggle-row"><button class="toggle" id="t-light" onclick="setTheme('light')">☀️ Sáng</button><button class="toggle active" id="t-dark" onclick="setTheme('dark')">🌙 Tối</button></div></div>
+                            <div class="settings-group"><div class="settings-group-title">🔤 Font chữ</div><select id="p-font" onchange="setFont(this.value)" class="field-select"><option value="'Be Vietnam Pro',sans-serif">Be Vietnam Pro</option><option value="'Inter',sans-serif">Inter</option><option value="'Nunito',sans-serif">Nunito</option><option value="'Roboto',sans-serif">Roboto</option></select></div>
+                        </div>
+                        <div class="profile-card danger-section"><div class="settings-group-title">⚠️ Vùng nguy hiểm</div><p class="danger-desc">Xóa toàn bộ buổi dạy, học viên và nhóm. Không thể hoàn tác.</p><button class="btn btn-danger" onclick="confirmNuke()">🗑️ Xóa toàn bộ dữ liệu</button></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- RIGHT PANEL (Notion-style event detail) -->
+            <aside class="right-panel" id="right-panel">
+                <div class="rp-header">
+                    <span class="rp-title">Sự kiện</span>
+                    <button class="rp-close" onclick="closeRightPanel()">✕</button>
+                </div>
+                <div class="rp-body" id="rp-body">
+                    <p class="muted">Click vào buổi dạy để xem chi tiết.</p>
+                </div>
+            </aside>
         </div>
     </main>
 </div>
 
-<!-- MODAL: Add student -->
-<div class="modal-backdrop" id="modal-student" hidden>
-    <div class="modal-box">
-        <div class="modal-top"><h3>Thêm học viên</h3><button class="modal-x" onclick="closeStudentModal()">✕</button></div>
-        <form id="student-form" class="form">
-            <div class="field"><label>Họ tên</label><input type="text" id="s-name" required placeholder="Nguyễn Văn A"></div>
-            <div class="field"><label>Chương trình học</label><input type="text" id="s-program" placeholder="IELTS / Piano..."></div>
-            <div class="field-row">
-                <div class="field"><label>Học phí (VNĐ)</label><input type="number" id="s-rate" placeholder="300000" value="0"></div>
-                <div class="field"><label>Trên (phút)</label><input type="number" id="s-rate-minutes" placeholder="60" value="60"></div>
-            </div>
-            <div class="field"><label>Level</label><select id="s-level"><option>Beginner</option><option>Elementary</option><option>Intermediate</option><option>Upper-Intermediate</option><option>Advanced</option></select></div>
-            <div class="field"><label>Nhận xét</label><textarea id="s-review" rows="2" placeholder="Nhận xét..."></textarea></div>
-            <div class="field"><label>Ghi chú</label><textarea id="s-note" rows="2" placeholder="Ghi chú..."></textarea></div>
-            <div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeStudentModal()">Hủy</button></div>
-        </form>
-    </div>
-</div>
+<!-- MODALS -->
+<div class="modal-backdrop" id="modal-student" hidden><div class="modal-box"><div class="modal-top"><h3>Thêm học viên</h3><button class="modal-x" onclick="closeStudentModal()">✕</button></div><form id="student-form" class="form"><div class="field"><label>Họ tên</label><input type="text" id="s-name" required placeholder="Nguyễn Văn A"></div><div class="field"><label>Chương trình học</label><input type="text" id="s-program" placeholder="IELTS / Piano..."></div><div class="field-row"><div class="field"><label>Học phí (VNĐ)</label><input type="number" id="s-rate" placeholder="300000" value="0"></div><div class="field"><label>Trên (phút)</label><input type="number" id="s-rate-minutes" placeholder="60" value="60"></div></div><div class="field"><label>Level</label><select id="s-level"><option>Beginner</option><option>Elementary</option><option>Intermediate</option><option>Upper-Intermediate</option><option>Advanced</option></select></div><div class="field"><label>Nhận xét</label><textarea id="s-review" rows="2" placeholder="Nhận xét..."></textarea></div><div class="field"><label>Ghi chú</label><textarea id="s-note" rows="2" placeholder="Ghi chú..."></textarea></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeStudentModal()">Hủy</button></div></form></div></div>
 
-<!-- MODAL: Add group -->
-<div class="modal-backdrop" id="modal-group" hidden>
-    <div class="modal-box">
-        <div class="modal-top"><h3>Tạo nhóm học</h3><button class="modal-x" onclick="closeGroupModal()">✕</button></div>
-        <form id="group-form" class="form">
-            <div class="field"><label>Tên nhóm</label><input type="text" id="g-name" required placeholder="VD: Nhóm IELTS Thứ 3"></div>
-            <div class="field"><label>Chương trình học (chung)</label><input type="text" id="g-program" placeholder="IELTS / Piano..."></div>
-            <div class="field-row">
-                <div class="field"><label>Học phí nhóm (VNĐ)</label><input type="number" id="g-rate" placeholder="300000" value="0"></div>
-                <div class="field"><label>Trên (phút)</label><input type="number" id="g-rate-minutes" placeholder="60" value="60"></div>
-            </div>
-            <div class="field"><label>Học viên trong nhóm</label><div id="g-members-list" class="members-checklist"></div></div>
-            <div class="field"><label>Ghi chú</label><textarea id="g-note" rows="2" placeholder="Ghi chú..."></textarea></div>
-            <div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeGroupModal()">Hủy</button></div>
-        </form>
-    </div>
-</div>
+<div class="modal-backdrop" id="modal-group" hidden><div class="modal-box"><div class="modal-top"><h3>Tạo nhóm học</h3><button class="modal-x" onclick="closeGroupModal()">✕</button></div><form id="group-form" class="form"><div class="field"><label>Tên nhóm</label><input type="text" id="g-name" required placeholder="VD: Nhóm IELTS Thứ 3"></div><div class="field"><label>Chương trình học (chung)</label><input type="text" id="g-program" placeholder="IELTS / Piano..."></div><div class="field-row"><div class="field"><label>Học phí nhóm (VNĐ)</label><input type="number" id="g-rate" placeholder="300000" value="0"></div><div class="field"><label>Trên (phút)</label><input type="number" id="g-rate-minutes" placeholder="60" value="60"></div></div><div class="field"><label>Học viên trong nhóm</label><div id="g-members-list" class="members-checklist"></div></div><div class="field"><label>Ghi chú</label><textarea id="g-note" rows="2" placeholder="Ghi chú..."></textarea></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeGroupModal()">Hủy</button></div></form></div></div>
 
-<!-- MODAL: Confirm Delete All -->
-<div class="modal-backdrop" id="modal-nuke" hidden>
-    <div class="modal-box modal-danger">
-        <div class="modal-top"><h3>⚠️ Xác nhận xóa</h3><button class="modal-x" onclick="closeNuke()">✕</button></div>
-        <p style="margin-bottom:16px;color:var(--text2)">Bạn có chắc muốn <strong style="color:var(--danger)">XÓA TOÀN BỘ</strong> dữ liệu? Hành động này không thể hoàn tác!</p>
-        <div class="form-actions"><button class="btn btn-danger" onclick="nukeData()">🗑️ Xóa hết</button><button class="btn btn-ghost" onclick="closeNuke()">Hủy</button></div>
-    </div>
-</div>
+<div class="modal-backdrop" id="modal-nuke" hidden><div class="modal-box modal-danger"><div class="modal-top"><h3>⚠️ Xác nhận xóa</h3><button class="modal-x" onclick="closeNuke()">✕</button></div><p style="margin-bottom:16px;color:var(--text2)">Bạn có chắc muốn <strong style="color:var(--danger)">XÓA TOÀN BỘ</strong> dữ liệu? Không thể hoàn tác!</p><div class="form-actions"><button class="btn btn-danger" onclick="nukeData()">🗑️ Xóa hết</button><button class="btn btn-ghost" onclick="closeNuke()">Hủy</button></div></div></div>
 
-<!-- MODAL: Quick add from calendar click -->
-<div class="modal-backdrop" id="modal-quick" hidden>
-    <div class="modal-box">
-        <div class="modal-top"><h3>⚡ Thêm nhanh</h3><button class="modal-x" onclick="closeQuickModal()">✕</button></div>
-        <form id="quick-form" class="form">
-            <div class="field">
-                <label>Loại</label>
-                <div class="toggle-row">
-                    <button type="button" class="toggle active" id="q-type-ind" onclick="setQuickType('individual')">👤 Cá nhân</button>
-                    <button type="button" class="toggle" id="q-type-grp" onclick="setQuickType('group')">👥 Nhóm</button>
-                </div>
-            </div>
-            <div class="field" id="q-field-student"><label>Học viên</label><select id="q-student"><option value="">-- Chọn --</option></select></div>
-            <div class="field" id="q-field-group" style="display:none"><label>Nhóm</label><select id="q-group"><option value="">-- Chọn --</option></select></div>
-            <div class="field"><label>Bài giảng</label><input type="text" id="q-lesson" required placeholder="Bài giảng..."></div>
-            <input type="hidden" id="q-date"><input type="hidden" id="q-hour">
-            <div class="field-row">
-                <div class="field"><label>Bắt đầu</label><input type="time" id="q-start" required></div>
-                <div class="field"><label>Kết thúc</label><input type="time" id="q-end" required></div>
-            </div>
-            <div class="field fee-display"><label>Học phí (auto)</label><div class="auto-fee-box"><span class="fee-value" id="q-fee-display">0đ</span></div><input type="hidden" id="q-fee" value="0"></div>
-            <div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeQuickModal()">Hủy</button></div>
-        </form>
-    </div>
-</div>
-
-<!-- MODAL: Event detail (click on event) -->
-<div class="modal-backdrop" id="modal-event" hidden>
-    <div class="modal-box">
-        <div class="modal-top"><h3>📋 Chi tiết buổi dạy</h3><button class="modal-x" onclick="closeEventModal()">✕</button></div>
-        <div id="event-detail"></div>
-        <div class="form-actions" style="margin-top:16px">
-            <button class="btn btn-danger" id="event-delete-btn">🗑 Xóa buổi này</button>
-            <button class="btn btn-ghost" onclick="closeEventModal()">Đóng</button>
-        </div>
-    </div>
-</div>
+<div class="modal-backdrop" id="modal-quick" hidden><div class="modal-box"><div class="modal-top"><h3>⚡ Thêm nhanh</h3><button class="modal-x" onclick="closeQuickModal()">✕</button></div><form id="quick-form" class="form"><div class="field"><label>Loại</label><div class="toggle-row"><button type="button" class="toggle active" id="q-type-ind" onclick="setQuickType('individual')">👤 Cá nhân</button><button type="button" class="toggle" id="q-type-grp" onclick="setQuickType('group')">👥 Nhóm</button></div></div><div class="field" id="q-field-student"><label>Học viên</label><select id="q-student"><option value="">-- Chọn --</option></select></div><div class="field" id="q-field-group" style="display:none"><label>Nhóm</label><select id="q-group"><option value="">-- Chọn --</option></select></div><div class="field"><label>Bài giảng</label><input type="text" id="q-lesson" required placeholder="Bài giảng..."></div><input type="hidden" id="q-date"><input type="hidden" id="q-hour"><div class="field-row"><div class="field"><label>Bắt đầu</label><input type="time" id="q-start" required></div><div class="field"><label>Kết thúc</label><input type="time" id="q-end" required></div></div><div class="field fee-display"><label>Học phí (auto)</label><div class="auto-fee-box"><span class="fee-value" id="q-fee-display">0đ</span></div><input type="hidden" id="q-fee" value="0"></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeQuickModal()">Hủy</button></div></form></div></div>
 
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
