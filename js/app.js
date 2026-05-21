@@ -21,20 +21,25 @@ document.addEventListener('DOMContentLoaded',async function(){
     document.getElementById('p-name').value=Store.profile.full_name||'';
     document.getElementById('f-date').valueAsDate=new Date();
     renderWelcome();renderStudents();renderGroups();populateDropdown();populateGroupDropdown();renderCalendar();
-    closeRightPanel();
-    syncUI('✅ Synced');
+    closeRightPanel();syncUI('✅ Synced');
+
     document.querySelectorAll('.menu-item').forEach(function(m){m.addEventListener('click',function(e){e.preventDefault();switchTab(m.dataset.tab);});});
     document.querySelectorAll('.vtab[data-view]').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.vtab[data-view]').forEach(function(x){x.classList.remove('active');});b.classList.add('active');calView=b.dataset.view;renderCalendar();});});
     document.querySelectorAll('.vtab[data-period]').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.vtab[data-period]').forEach(function(x){x.classList.remove('active');});b.classList.add('active');renderStats(b.dataset.period);});});
     document.getElementById('nav-prev').addEventListener('click',function(){navCal(-1);});
     document.getElementById('nav-next').addEventListener('click',function(){navCal(1);});
     document.getElementById('nav-today').addEventListener('click',function(){calDate=new Date();renderCalendar();});
+
     document.getElementById('session-form').addEventListener('submit',saveSession);
     document.getElementById('student-form').addEventListener('submit',saveStudent);
     document.getElementById('group-form').addEventListener('submit',saveGroup);
-    document.getElementById('quick-form').addEventListener('submit',saveQuickSession);
+    document.getElementById('edit-form').addEventListener('submit',saveEditSession);
+    document.getElementById('edit-student-form').addEventListener('submit',saveEditStudent);
+    document.getElementById('edit-group-form').addEventListener('submit',saveEditGroup);
+
     ['f-start','f-end','f-student','f-group'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('change',recalcFee);});
-    ['q-start','q-end','q-student','q-group'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('change',recalcQuickFee);});
+    document.getElementById('g-search').addEventListener('input',handleTagSearch);
     document.getElementById('hamburger').addEventListener('click',function(){document.getElementById('sidebar').classList.toggle('open');});
     document.querySelector('.page-wrap').addEventListener('click',function(){document.getElementById('sidebar').classList.remove('open');});
+    document.addEventListener('click',function(){hideCtx();});
 });

@@ -7,11 +7,22 @@
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-actions{display:flex;gap:10px;margin-top:8px}
 .fee-display .auto-fee-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;display:flex;flex-direction:column;gap:3px}
-.fee-display .fee-value{font-size:1.4rem;font-weight:800;font-family:var(--font-heading);background:linear-gradient(135deg,var(--success),#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.fee-input{background:transparent!important;border:none!important;font-size:1.4rem!important;font-weight:800!important;font-family:var(--font-heading)!important;color:var(--success)!important;padding:0!important;width:100%;outline:none}
+.fee-input:focus{box-shadow:none!important}
+.fee-display .fee-value{font-size:1.4rem;font-weight:800;font-family:var(--font-heading);color:var(--success)}
 .fee-display .fee-detail{font-size:.75rem;color:var(--text3)}
 
-/* REPEAT OPTIONS */
-.day-checks{display:flex;flex-wrap:wrap;gap:8px}
-.dchk{display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);font-size:.82rem;cursor:pointer;transition:all .15s}
+/* REPEAT CONFIG - NOTION STYLE */
+.repeat-config{display:flex;flex-direction:column;gap:12px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.repeat-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.repeat-row label{font-size:.82rem;color:var(--text2);min-width:40px}
+.repeat-num{width:60px!important;padding:8px 10px!important;text-align:center;font-size:.9rem}
+.repeat-row select{width:auto!important;padding:8px 12px!important;min-width:80px}
+.day-checks{display:flex;flex-wrap:wrap;gap:6px}
+.dchk{display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;font-size:.78rem;cursor:pointer;transition:all .15s;color:var(--text2)}
 .dchk:has(input:checked){background:var(--accent);color:#fff;border-color:var(--accent)}
 .dchk input{display:none}
+.repeat-end-options{display:flex;flex-direction:column;gap:8px;padding-left:4px}
+.rend{display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--text2);cursor:pointer}
+.rend input[type="radio"]{accent-color:var(--accent)}
+.rend input[type="date"],.rend input[type="number"]{width:auto!important;padding:6px 10px!important;font-size:.82rem}
