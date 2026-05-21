@@ -8,7 +8,7 @@
 .mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:.68rem}.mc-hdr{color:var(--text3);font-weight:600;padding:4px 0}.mc-day{padding:4px 0;border-radius:4px;cursor:pointer;color:var(--text2);transition:all .15s}.mc-day:hover{background:var(--surface);color:var(--text)}.mc-day.today{background:var(--accent);color:#fff;font-weight:700}.mc-day.other{opacity:.3}.mc-day.has-event{font-weight:700;color:var(--accent2)}
 .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
 .topbar{display:flex;align-items:center;gap:16px;padding:16px 28px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}.topbar-title{font-size:1.2rem;font-weight:700;flex:1}.hamburger{display:none;background:none;border:none;font-size:1.6rem;color:var(--text);cursor:pointer}
-.content-with-panel{display:flex;flex:1;position:relative;overflow:hidden}
+.content-with-panel{display:flex;flex:1;position:relative}
 .content-wrap{padding:28px;flex:1;overflow-y:auto;width:100%}
 
 /* RIGHT PANEL - REDESIGNED */
@@ -42,3 +42,4 @@
 .right-panel{position:fixed;top:0;right:0;bottom:0;width:var(--panel-w);background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:transform var(--transition);transform:translateX(100%);z-index:150}
 .right-panel.hidden{transform:translateX(100%)}
 .right-panel.open{transform:translateX(0)}
+.pages{flex:1;position:relative}
