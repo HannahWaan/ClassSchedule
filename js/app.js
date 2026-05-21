@@ -147,7 +147,7 @@ async function loadAllExternalData() {
 }
 
 function getAllSessions() {
-  var gcal = _eventsCache.slice();
+  var gcal = _eventsCache.filter(function(ev) { return !isEventHidden(ev.id); });
   var local = (Store.sessions||[]).map(function(s) {
     return {id:s.id, name:s.student_name||s.group_name||'', date:s.date+'T'+(s.start_time||'00:00'),
       dateEnd:s.date+'T'+(s.end_time||'00:00'), student:s.student_name||'', fee:s.fee||0,

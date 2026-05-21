@@ -189,16 +189,29 @@
 <!-- MODAL: RECURRING DELETE -->
 <div class="modal-backdrop" id="recurring-delete-modal" hidden>
 <div class="modal-box" style="max-width:400px">
+      <button class="btn btn-outline" onclick="handleRecurringDelete('hide')">👁️‍🗨️ Chi an khoi ClassSchedule</button>
     <div class="modal-top"><h3>Xóa sự kiện lặp lại</h3><button class="modal-x" onclick="closeRecurringDeleteModal()">✕</button></div>
     <p style="margin:12px 0 20px;color:var(--text2);font-size:.9rem">Sự kiện này thuộc chuỗi lặp lại. Bạn muốn xóa như thế nào?</p>
     <div style="display:flex;flex-direction:column;gap:10px">
       <button class="btn btn-outline" onclick="handleRecurringDelete('this')">🗓️ Chỉ xóa sự kiện này</button>
       <button class="btn btn-outline" onclick="handleRecurringDelete('this-and-following')">📅 Xóa sự kiện này và sau đó</button>
       <button class="btn btn-danger" onclick="handleRecurringDelete('all')">🗑️ Xóa toàn bộ chuỗi lặp lại</button>
+      <button class="btn btn-outline" onclick="handleRecurringDelete('hide')">👁️‍🗨️ Chi an khoi ClassSchedule</button>
       <button class="btn btn-ghost" onclick="closeRecurringDeleteModal()" style="margin-top:4px">Hủy</button>
     </div>
 </div></div>
 
+<!-- MODAL: SINGLE DELETE -->
+<div class="modal-backdrop" id="single-delete-modal" hidden>
+<div class="modal-box" style="max-width:400px">
+    <div class="modal-top"><h3>Xoa su kien</h3><button class="modal-x" onclick="closeSingleDeleteModal()">✕</button></div>
+    <p style="margin:12px 0 20px;color:var(--text2);font-size:.9rem">Ban muon xoa su kien nay nhu the nao?</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-danger" onclick="handleSingleDelete('gcal')">🗑️ Xoa tren Google Calendar</button>
+      <button class="btn btn-outline" onclick="handleSingleDelete('hide')">👁️‍🗨️ Chi an khoi ClassSchedule</button>
+      <button class="btn btn-ghost" onclick="closeSingleDeleteModal()" style="margin-top:4px">Huy</button>
+    </div>
+</div></div>
 <!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>

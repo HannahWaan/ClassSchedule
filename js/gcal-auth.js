@@ -1,21 +1,35 @@
-/* ===== GCAL-AUTH.JS v3 - Fixed ===== */
-const GCAL_CLIENT_ID = '508450041217-3bc9vrbbusm6iqn2sbgac620dhn3e3dq.apps.googleusercontent.com';
-const GCAL_SCOPES = 'https://www.googleapis.com/auth/calendar';
-const GCAL_CAL_ID = 'asstrayca@gmail.com';
-const GCAL_BASE = 'https://www.googleapis.com/calendar/v3';
+/* ===== GCAL-AUTH.JS v4 ===== */
+var GCAL_CLIENT_ID = '508450041217-3bc9vrbbusm6iqn2sbgac620dhn3e3dq.apps.googleusercontent.com';
+var GCAL_SCOPES = 'https://www.googleapis.com/auth/calendar';
+var GCAL_CAL_ID = 'asstrayca@gmail.com';
+var GCAL_BASE = 'https://www.googleapis.com/calendar/v3';
 
-let tokenClient = null;
-let accessToken = localStorage.getItem('gcal_token') || null;
-let tokenExpiry = parseInt(localStorage.getItem('gcal_token_expiry') || '0');
+var tokenClient = null;
+var accessToken = localStorage.getItem('gcal_token') || null;
+var tokenExpiry = parseInt(localStorage.getItem('gcal_token_expiry') || '0');
 
+/* ---- Hidden events (local only, not deleted from GCal) ---- */
+function getHiddenEvents() {
+  try { return JSON.parse(localStorage.getItem('cs-hidden-events') || '[]'); } catch(e) { return []; }
+}
+function saveHiddenEvents(arr) { localStorage.setItem('cs-hidden-events', JSON.stringify(arr)); }
+function isEventHidden(eventId) { return getHiddenEvents().indexOf(eventId) !== -1; }
+function hideEventLocally(eventId) {
+  var hidden = getHiddenEvents();
+  if (hidden.indexOf(eventId) === -1) { hidden.push(eventId); saveHiddenEvents(hidden); }
+}
+function unhideEvent(eventId) {
+  var hidden = getHiddenEvents();
+  hidden = hidden.filter(function(id) { return id !== eventId; });
+  saveHiddenEvents(hidden);
+}
+
+/* ---- Token ---- */
 function isTokenValid() { return accessToken && Date.now() < tokenExpiry; }
 
 function initTokenClient() {
   if (tokenClient) return;
-  if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
-    console.warn('Google Identity Services not loaded yet');
-    return;
-  }
+  if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) return;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GCAL_CLIENT_ID,
     scope: GCAL_SCOPES,
@@ -34,17 +48,16 @@ function initTokenClient() {
 }
 
 function showAuthReady() {
-  var authBtn = document.getElementById('btn-gcal-auth');
-  var addBtn = document.getElementById('btn-add-event');
-  if (authBtn) authBtn.style.display = 'none';
-  if (addBtn) addBtn.style.display = '';
+  var a = document.getElementById('btn-gcal-auth');
+  var b = document.getElementById('btn-add-event');
+  if (a) a.style.display = 'none';
+  if (b) b.style.display = '';
 }
-
 function showAuthNeeded() {
-  var authBtn = document.getElementById('btn-gcal-auth');
-  var addBtn = document.getElementById('btn-add-event');
-  if (authBtn) authBtn.style.display = '';
-  if (addBtn) addBtn.style.display = 'none';
+  var a = document.getElementById('btn-gcal-auth');
+  var b = document.getElementById('btn-add-event');
+  if (a) a.style.display = '';
+  if (b) b.style.display = 'none';
 }
 
 function ensureToken() {
@@ -66,8 +79,7 @@ async function gcalFetch(url, options) {
   var res = await fetch(url, options);
   if (res.status === 401) {
     localStorage.removeItem('gcal_token');
-    accessToken = null;
-    tokenExpiry = 0;
+    accessToken = null; tokenExpiry = 0;
     await ensureToken();
     options.headers['Authorization'] = 'Bearer ' + accessToken;
     res = await fetch(url, options);
@@ -77,31 +89,17 @@ async function gcalFetch(url, options) {
 
 /* ---- CRUD ---- */
 async function createEvent(summary, start, end, description) {
-  var body = {
-    summary: summary,
-    description: description || '',
-    start: { dateTime: start, timeZone: 'Asia/Ho_Chi_Minh' },
-    end: { dateTime: end, timeZone: 'Asia/Ho_Chi_Minh' }
-  };
-  var res = await gcalFetch(GCAL_BASE + '/calendars/' + encodeURIComponent(GCAL_CAL_ID) + '/events', {
-    method: 'POST', body: JSON.stringify(body)
-  });
+  var body = { summary: summary, description: description || '', start: {dateTime:start, timeZone:'Asia/Ho_Chi_Minh'}, end: {dateTime:end, timeZone:'Asia/Ho_Chi_Minh'} };
+  var res = await gcalFetch(GCAL_BASE + '/calendars/' + encodeURIComponent(GCAL_CAL_ID) + '/events', { method:'POST', body:JSON.stringify(body) });
   return res.json();
 }
-
 async function updateEvent(eventId, data) {
-  var res = await gcalFetch(GCAL_BASE + '/calendars/' + encodeURIComponent(GCAL_CAL_ID) + '/events/' + eventId, {
-    method: 'PATCH', body: JSON.stringify(data)
-  });
+  var res = await gcalFetch(GCAL_BASE + '/calendars/' + encodeURIComponent(GCAL_CAL_ID) + '/events/' + eventId, { method:'PATCH', body:JSON.stringify(data) });
   return res.json();
 }
-
 async function deleteEvent(eventId) {
-  return gcalFetch(GCAL_BASE + '/calendars/' + encodeURIComponent(GCAL_CAL_ID) + '/events/' + eventId, {
-    method: 'DELETE'
-  });
+  return gcalFetch(GCAL_BASE + '/calendars/' + encodeURIComponent(GCAL_CAL_ID) + '/events/' + eventId, { method:'DELETE' });
 }
-
 async function getEvent(eventId) {
   var res = await gcalFetch(GCAL_BASE + '/calendars/' + encodeURIComponent(GCAL_CAL_ID) + '/events/' + eventId);
   if (!res.ok) throw new Error('Event not found: ' + res.status);
@@ -111,45 +109,36 @@ async function getEvent(eventId) {
 /* ---- RECURRING DELETE ---- */
 var _pendingDeleteId = null;
 
-async function deleteThisInstance(instanceId) {
-  return deleteEvent(instanceId);
-}
+async function deleteThisInstance(id) { return deleteEvent(id); }
 
-async function deleteThisAndFollowing(instanceId) {
-  var instance = await getEvent(instanceId);
+async function deleteThisAndFollowing(id) {
+  var instance = await getEvent(id);
   var parentId = instance.recurringEventId;
-  if (!parentId) return deleteEvent(instanceId);
+  if (!parentId) return deleteEvent(id);
   var parent = await getEvent(parentId);
   var startStr = instance.originalStartTime ? instance.originalStartTime.dateTime : instance.start.dateTime;
-  var instanceStart = new Date(startStr);
-  var untilDate = new Date(instanceStart.getTime() - 1000);
-  var untilStr = untilDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-  var recurrence = parent.recurrence || [];
-  recurrence = recurrence.map(function(rule) {
-    if (rule.indexOf('RRULE:') === 0) {
-      var parts = rule.replace(/;UNTIL=[^;]*/i, '').replace(/;COUNT=[^;]*/i, '');
-      return parts + ';UNTIL=' + untilStr;
-    }
+  var untilDate = new Date(new Date(startStr).getTime() - 1000);
+  var untilStr = untilDate.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  var recurrence = (parent.recurrence || []).map(function(rule) {
+    if (rule.indexOf('RRULE:') === 0) return rule.replace(/;UNTIL=[^;]*/i,'').replace(/;COUNT=[^;]*/i,'') + ';UNTIL=' + untilStr;
     return rule;
   });
   return updateEvent(parentId, { recurrence: recurrence });
 }
 
-async function deleteAllInstances(instanceId) {
-  var instance = await getEvent(instanceId);
-  var parentId = instance.recurringEventId || instanceId;
-  return deleteEvent(parentId);
+async function deleteAllInstances(id) {
+  var instance = await getEvent(id);
+  return deleteEvent(instance.recurringEventId || id);
 }
 
-/* ---- Delete Modal UI ---- */
+/* ---- Delete Modal ---- */
 function showRecurringDeleteModal() {
-  var modal = document.getElementById('recurring-delete-modal');
-  if (modal) modal.hidden = false;
+  var m = document.getElementById('recurring-delete-modal');
+  if (m) m.hidden = false;
 }
-
 function closeRecurringDeleteModal() {
-  var modal = document.getElementById('recurring-delete-modal');
-  if (modal) modal.hidden = true;
+  var m = document.getElementById('recurring-delete-modal');
+  if (m) m.hidden = true;
   _pendingDeleteId = null;
 }
 
@@ -161,10 +150,30 @@ async function handleRecurringDelete(mode) {
     if (mode === 'this') await deleteThisInstance(id);
     else if (mode === 'this-and-following') await deleteThisAndFollowing(id);
     else if (mode === 'all') await deleteAllInstances(id);
+    else if (mode === 'hide') hideEventLocally(id);
     refreshAfterChange();
-  } catch (e) {
-    alert('Lỗi khi xóa: ' + (e.message || e));
-  }
+  } catch (e) { alert('Loi khi xoa: ' + (e.message || e)); }
+}
+
+/* ---- Single event delete modal ---- */
+function showSingleDeleteModal() {
+  var m = document.getElementById('single-delete-modal');
+  if (m) m.hidden = false;
+}
+function closeSingleDeleteModal() {
+  var m = document.getElementById('single-delete-modal');
+  if (m) m.hidden = true;
+  _pendingDeleteId = null;
+}
+async function handleSingleDelete(mode) {
+  if (!_pendingDeleteId) return;
+  var id = _pendingDeleteId;
+  closeSingleDeleteModal();
+  try {
+    if (mode === 'gcal') { await deleteEvent(id); }
+    else if (mode === 'hide') { hideEventLocally(id); }
+    refreshAfterChange();
+  } catch(e) { alert('Loi khi xoa: ' + (e.message || e)); }
 }
 
 /* ---- Event Modal ---- */
@@ -172,9 +181,9 @@ var _editingEventId = null;
 
 function openAddEventModal() {
   _editingEventId = null;
-  document.getElementById('ev-modal-title').textContent = 'Thêm buổi dạy';
+  document.getElementById('ev-modal-title').textContent = 'Them buoi day';
   document.getElementById('ev-title').value = '';
-  document.getElementById('ev-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('ev-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('ev-start').value = '19:00';
   document.getElementById('ev-end').value = '20:00';
   document.getElementById('ev-note').value = '';
@@ -183,26 +192,23 @@ function openAddEventModal() {
 }
 
 async function openEditEventModal(eventId) {
-  if (!isTokenValid()) {
-    alert('Vui lòng đăng nhập Google trước (tab Lịch dạy).');
-    return;
-  }
+  if (!isTokenValid()) { alert('Vui long dang nhap Google truoc (tab Lich day).'); return; }
   try {
     _editingEventId = eventId;
     var ev = await getEvent(eventId);
-    document.getElementById('ev-modal-title').textContent = 'Sửa buổi dạy';
+    document.getElementById('ev-modal-title').textContent = 'Sua buoi day';
     document.getElementById('ev-title').value = ev.summary || '';
     var start = new Date(ev.start.dateTime || ev.start.date);
     var end = new Date(ev.end.dateTime || ev.end.date);
-    document.getElementById('ev-date').value = start.toISOString().slice(0, 10);
-    document.getElementById('ev-start').value = start.toTimeString().slice(0, 5);
-    document.getElementById('ev-end').value = end.toTimeString().slice(0, 5);
+    document.getElementById('ev-date').value = start.toISOString().slice(0,10);
+    document.getElementById('ev-start').value = start.toTimeString().slice(0,5);
+    document.getElementById('ev-end').value = end.toTimeString().slice(0,5);
     document.getElementById('ev-note').value = ev.description || '';
     document.getElementById('ev-delete-btn').style.display = '';
     document.getElementById('modal-event').hidden = false;
-  } catch (e) {
+  } catch(e) {
     console.error('Cannot load event:', e);
-    alert('Không thể mở sự kiện. Vui lòng thử lại.');
+    alert('Khong the mo su kien. Vui long thu lai.');
   }
 }
 
@@ -218,27 +224,18 @@ async function saveGCalEvent(e) {
   var startT = document.getElementById('ev-start').value;
   var endT = document.getElementById('ev-end').value;
   var note = document.getElementById('ev-note').value.trim();
-  if (!title || !date || !startT || !endT) { alert('Vui lòng điền đủ thông tin'); return; }
-
+  if (!title || !date || !startT || !endT) { alert('Vui long dien du thong tin'); return; }
   var startDT = date + 'T' + startT + ':00';
   var endDT = date + 'T' + endT + ':00';
-
   try {
     if (_editingEventId) {
-      await updateEvent(_editingEventId, {
-        summary: title,
-        start: { dateTime: startDT, timeZone: 'Asia/Ho_Chi_Minh' },
-        end: { dateTime: endDT, timeZone: 'Asia/Ho_Chi_Minh' },
-        description: note
-      });
+      await updateEvent(_editingEventId, { summary:title, start:{dateTime:startDT,timeZone:'Asia/Ho_Chi_Minh'}, end:{dateTime:endDT,timeZone:'Asia/Ho_Chi_Minh'}, description:note });
     } else {
       await createEvent(title, startDT, endDT, note);
     }
     closeEventModal();
     refreshAfterChange();
-  } catch (e2) {
-    alert('Lỗi: ' + (e2.message || e2));
-  }
+  } catch(e2) { alert('Loi: ' + (e2.message || e2)); }
 }
 
 async function deleteGCalEvent() {
@@ -247,41 +244,29 @@ async function deleteGCalEvent() {
   closeEventModal();
   try {
     var ev = await getEvent(eventId);
+    _pendingDeleteId = eventId;
     if (ev.recurringEventId) {
-      _pendingDeleteId = eventId;
       showRecurringDeleteModal();
     } else {
-      if (confirm('Xóa buổi dạy này?')) {
-        await deleteEvent(eventId);
-        refreshAfterChange();
-      }
+      showSingleDeleteModal();
     }
-  } catch (e) {
-    if (confirm('Xóa buổi dạy này?')) {
-      await deleteEvent(eventId);
-      refreshAfterChange();
-    }
+  } catch(e) {
+    _pendingDeleteId = eventId;
+    showSingleDeleteModal();
   }
 }
 
 /* ---- Refresh ---- */
 function refreshAfterChange() {
   var iframe = document.getElementById('gcal-iframe');
-  if (iframe) {
-    var src = iframe.src;
-    iframe.src = '';
-    setTimeout(function() { iframe.src = src; }, 300);
-  }
+  if (iframe) { var src = iframe.src; iframe.src = ''; setTimeout(function(){iframe.src=src;}, 300); }
   if (typeof loadAllExternalData === 'function') setTimeout(loadAllExternalData, 1500);
 }
 
 /* ---- Session click ---- */
 function onSessionClick(eventId) {
   if (!eventId || eventId === 'undefined' || eventId === 'null') return;
-  if (!isTokenValid()) {
-    alert('Vui lòng đăng nhập Google trước (tab Lịch dạy).');
-    return;
-  }
+  if (!isTokenValid()) { alert('Vui long dang nhap Google truoc (tab Lich day).'); return; }
   openEditEventModal(eventId);
 }
 
@@ -293,16 +278,23 @@ function handleGCalAuth() {
   }).catch(function(e) { console.error('Auth failed:', e); });
 }
 
-/* ---- Auto-login on page load ---- */
+/* ---- Auto-login: wait for GIS to load ---- */
 document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() {
-    initTokenClient();
-    if (isTokenValid()) {
-      showAuthReady();
-    } else if (accessToken) {
-      ensureToken().then(showAuthReady).catch(showAuthNeeded);
+  function waitForGIS(attempts) {
+    if (attempts <= 0) { console.warn('GIS failed to load after 10s'); showAuthNeeded(); return; }
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+      initTokenClient();
+      if (isTokenValid()) {
+        showAuthReady();
+        if (typeof loadAllExternalData === 'function') loadAllExternalData();
+      } else if (accessToken) {
+        ensureToken().then(function() { showAuthReady(); if (typeof loadAllExternalData === 'function') loadAllExternalData(); }).catch(showAuthNeeded);
+      } else {
+        showAuthNeeded();
+      }
     } else {
-      showAuthNeeded();
+      setTimeout(function() { waitForGIS(attempts - 1); }, 500);
     }
-  }, 1200);
+  }
+  waitForGIS(20);
 });
