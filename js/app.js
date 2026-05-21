@@ -61,7 +61,7 @@ function parseGCalEvent(ev) {
   var student = '', type = 'individual', fee = 0;
   if (/group|nhóm|nhom/i.test(title)) type = 'group';
   
-  student = parts.length >= 2 ? parts.slice(1).join(' - ').trim() : title;
+  student = title;
   var feeMatch = note.match(/(?:fee|học phí|hoc phi|gia)[:\s]*(\d+)/i);
   if (feeMatch) { fee = parseInt(feeMatch[1]); if (fee < 1000) fee *= 1000; }
   if (!fee) { var kMatch = note.match(/(\d+)k/i); if (kMatch) fee = parseInt(kMatch[1]) * 1000; }

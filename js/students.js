@@ -212,7 +212,7 @@ function buildStudentCard(st) {
 
   return '<div class="stu-card' + (st.completed ? ' completed' : '') + '">' +
     '<div class="stu-info">' +
-      '<h4>' + st.name + '</h4>' +
+      '<h4><strong>' + st.name + '</strong></h4>' +
       '<p>' + (feeLabels[st.feeType]||'') + ' · ' + feeDisplay + '</p>' +
       '<p>📚 ' + st.doneSessions.length + '/' + st.sessions.length + ' buổi · ⏱️ ' + hours + 'h' + (mins > 0 ? mins + 'p' : '') + '</p>' +
       '<p>💵 Đã thu: ' + formatVND(st.earned) + (st.uncollected > 0 ? ' · <span style="color:var(--danger)">Nợ: ' + formatVND(st.uncollected) + '</span>' : '') + '</p>' +
@@ -465,9 +465,62 @@ function saveStudent(e) {
 
   saveStudentData(data);
   closeStudentModal();
+
+  // Ask to create on Google Calendar
+  var addToGcal = document.getElementById('sf-add-gcal');
+    createStudentOnGCal(name, schedules, repeat);
+  }
+
   renderStudents();
   if (typeof updateDashboard === 'function') updateDashboard();
   if (typeof updateStats === 'function') updateStats();
+}
+
+function createStudentOnGCal(name, schedules, repeat) {
+    alert('Can dang nhap Google truoc khi tao su kien.');
+    return;
+  }
+
+  var rruleMap = {
+    'weekly': 'RRULE:FREQ=WEEKLY',
+    'daily': 'RRULE:FREQ=DAILY',
+    'biweekly': 'RRULE:FREQ=WEEKLY;INTERVAL=2',
+    'monthly': 'RRULE:FREQ=MONTHLY'
+  };
+
+  schedules.forEach(function(sc) {
+    var dayMap = ['SU','MO','TU','WE','TH','FR','SA'];
+    var byDay = sc.days.map(function(d) { return dayMap[d]; }).join(',');
+
+    // Find next occurrence of first day
+    var today = new Date();
+    var targetDay = sc.days[0];
+    var diff = (targetDay - today.getDay() + 7) % 7;
+    if (diff === 0) diff = 7;
+    var startDate = new Date(today);
+    startDate.setDate(today.getDate() + diff);
+
+    var dateStr = startDate.toISOString().split('T')[0];
+    var startDT = dateStr + 'T' + sc.start + ':00';
+    var endDT = dateStr + 'T' + sc.end + ':00';
+
+    var recurrence = [];
+    if (repeat && repeat !== 'none' && rruleMap[repeat]) {
+      recurrence.push(rruleMap[repeat] + ';BYDAY=' + byDay);
+    }
+
+    var eventBody = {
+      summary: name,
+      start: { dateTime: startDT, timeZone: 'Asia/Ho_Chi_Minh' },
+      end: { dateTime: endDT, timeZone: 'Asia/Ho_Chi_Minh' }
+    };
+    if (recurrence.length > 0) eventBody.recurrence = recurrence;
+
+    createEvent(eventBody).then(function() {
+      console.log('Created GCal event for: ' + name);
+      if (typeof refreshAfterChange === 'function') refreshAfterChange();
+    }).catch(function(e) { console.warn('Failed to create GCal event:', e); });
+  });
 }
 
 /* ===== DETAIL PANEL ===== */

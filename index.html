@@ -137,6 +137,10 @@
             <select id="sf-group"><option value="">-- Không thuộc lớp nhóm --</option></select>
         </div>
         <div class="field"><label>Ghi chú</label><textarea id="sf-note" rows="2" placeholder="Ghi chú về học viên..."></textarea></div>
+        <div class="field" style="flex-direction:row;align-items:center;gap:8px">
+            <input type="checkbox" id="sf-add-gcal" checked>
+            <label for="sf-add-gcal" style="text-transform:none;font-size:.85rem;color:var(--text2);cursor:pointer">Thêm vào Google Calendar</label>
+        </div>
         <div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeStudentModal()">Hủy</button></div>
     </form>
 </div></div>
