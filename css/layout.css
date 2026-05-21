@@ -12,7 +12,7 @@
 .content-wrap{padding:28px;flex:1;overflow-y:auto;width:100%}
 
 /* RIGHT PANEL - REDESIGNED */
-.right-panel{width:var(--panel-w);background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;height:calc(100vh - 60px);position:sticky;top:60px;overflow-y:auto;transition:all var(--transition)}
+.right-panel{position:fixed;top:0;right:0;bottom:0;width:var(--panel-w);background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:transform var(--transition);transform:translateX(100%);z-index:150}
 
 .rp-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);min-width:var(--panel-w)}.rp-title{font-size:.85rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}.rp-close{background:none;border:none;font-size:1.1rem;color:var(--text3);cursor:pointer;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .15s}.rp-close:hover{color:#fff;background:var(--danger)}
 .rp-body{padding:20px;flex:1;min-width:var(--panel-w)}
@@ -35,3 +35,4 @@
 .right-panel.hidden{display:none!important;width:0;overflow:hidden}
 /* FIX: profile layout wrapper */
 .profile-layout-wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.right-panel.open{transform:translateX(0)}
