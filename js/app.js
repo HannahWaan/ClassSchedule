@@ -122,6 +122,7 @@ function getAllSessions() {
     status: s.done ? 'Done' : 'Not started', type: s.type || 'individual',
     color: s.color || 'c1', note: s.note || '', source: 'local'
   }));
+  const all = [...localMapped, ...gcalEvents];
   const map = new Map(); all.forEach(s => map.set(s.id, s));
   return [...map.values()];
 }
