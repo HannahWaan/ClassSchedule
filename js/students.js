@@ -310,12 +310,6 @@ function saveStudent(e) {
 /* ---- Delete student with options ---- */
 var _pendingDeleteStudent = null;
 
-function deleteStudent(key) {
-  var name = decodeKey(key);
-  _pendingDeleteStudent = name;
-  document.getElementById('student-delete-modal').hidden = false;
-  document.getElementById('sdm-name').textContent = name;
-}
 
 async function handleStudentDelete(mode) {
   if (!_pendingDeleteStudent) return;
@@ -399,6 +393,54 @@ function showStudentDetail(key) {
 
   document.getElementById('rp-body').innerHTML = html;
   openRightPanel();
+}
+
+/* ---- Delete student with options ---- */
+var _pendingDeleteStudent = null;
+
+function deleteStudent(key) {
+  var name = decodeKey(key);
+  _pendingDeleteStudent = name;
+  var modal = document.getElementById("student-delete-modal");
+  var nameEl = document.getElementById("sdm-name");
+  if (nameEl) nameEl.textContent = name;
+  if (modal) modal.hidden = false;
+}
+
+function handleStudentDelete(mode) {
+  if (!_pendingDeleteStudent) return;
+  var name = _pendingDeleteStudent;
+  var modal = document.getElementById("student-delete-modal");
+  if (modal) modal.hidden = true;
+
+  if (mode === "cancel") { _pendingDeleteStudent = null; return; }
+
+  /* Remove from local data */
+  var data = getStudentData();
+  data = data.filter(function(s) { return s.name !== name; });
+  saveStudentData(data);
+
+  /* mode=gcal: also delete GCal events */
+  if (mode === "gcal" && typeof deleteEvent === "function" && isTokenValid()) {
+    var sessions = getAllSessions().filter(function(s) { return s.student === name && s.source === "gcal"; });
+    var deleted = {};
+    sessions.forEach(function(s) {
+      var delId = s.recurringEventId || s.id;
+      if (!deleted[delId]) { deleted[delId] = true; deleteEvent(delId).catch(function(){}); }
+    });
+    setTimeout(function() { if (typeof refreshAfterChange === "function") refreshAfterChange(); }, 1000);
+  }
+
+  /* mode=hide: hide events locally */
+  if (mode === "hide" && typeof hideEventLocally === "function") {
+    var sessions2 = getAllSessions().filter(function(s) { return s.student === name; });
+    sessions2.forEach(function(s) { hideEventLocally(s.id); });
+  }
+
+  _pendingDeleteStudent = null;
+  renderStudents();
+  if (typeof updateDashboard === "function") updateDashboard();
+  if (typeof updateStats === "function") updateStats();
 }
 
 function getActiveStudentNames() {
