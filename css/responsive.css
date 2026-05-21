@@ -15,7 +15,7 @@
   .topbar-title{font-size:1rem}
   .right-panel{position:fixed;top:0;right:0;bottom:0;width:85vw;max-width:320px;z-index:200;transform:translateX(100%);background:var(--bg2)}
   .right-panel.open{transform:translateX(0)}
-  .right-panel.hidden{transform:translateX(100%)}
+  .right-panel.hidden{display:none!important}
   .content-with-panel{flex-direction:column}
   .grid-4{grid-template-columns:repeat(2,1fr);gap:8px}
   .grid-3{grid-template-columns:1fr;gap:8px}
