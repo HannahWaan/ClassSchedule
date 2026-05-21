@@ -311,46 +311,6 @@ function saveStudent(e) {
 var _pendingDeleteStudent = null;
 
 
-async function handleStudentDelete(mode) {
-  if (!_pendingDeleteStudent) return;
-  var name = _pendingDeleteStudent;
-  document.getElementById('student-delete-modal').hidden = true;
-
-  if (mode === 'cancel') { _pendingDeleteStudent = null; return; }
-
-  // Delete from local data
-  var data = getStudentData();
-  data = data.filter(function(s) { return s.name !== name; });
-  saveStudentData(data);
-
-  // If mode === 'gcal', also delete all related events from Google Calendar
-  if (mode === 'gcal' && isTokenValid()) {
-    try {
-      var sessions = getAllSessions().filter(function(s) { return s.student === name && s.source === 'gcal'; });
-      for (var i = 0; i < sessions.length; i++) {
-        var s = sessions[i];
-        if (s.recurringEventId) {
-          // Delete entire recurring series
-          try { await deleteEvent(s.recurringEventId); } catch(e) { /* already deleted */ }
-        } else {
-          try { await deleteEvent(s.id); } catch(e) { /* skip */ }
-        }
-      }
-      refreshAfterChange();
-    } catch(e) { console.warn('Error deleting GCal events:', e); }
-  }
-
-  // If mode === 'hide', hide all related events locally
-  if (mode === 'hide') {
-    var sessions2 = getAllSessions().filter(function(s) { return s.student === name; });
-    sessions2.forEach(function(s) { hideEventLocally(s.id); });
-  }
-
-  _pendingDeleteStudent = null;
-  renderStudents();
-  if (typeof updateDashboard === 'function') updateDashboard();
-  if (typeof updateStats === 'function') updateStats();
-}
 
 
 function showStudentDetail(key) {
