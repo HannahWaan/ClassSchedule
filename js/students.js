@@ -525,6 +525,7 @@ function createStudentOnGCal(name, schedules, repeat) {
       eventBody.recurrence = [rule];
     }
 
+    console.log("GCal eventBody:", JSON.stringify(eventBody));
     createEvent(eventBody).then(function() {
       console.log('Created GCal event for: ' + name);
       setTimeout(function(){ if (typeof refreshAfterChange === 'function') refreshAfterChange(); }, 800);
