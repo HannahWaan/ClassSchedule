@@ -1,11 +1,99 @@
-/* ===== APP.JS ===== */
+/* ===== APP.JS - OAuth only, no API key ===== */
 
+/* ---- Utility: filterByPeriod (moved from GCalSync) ---- */
+function filterByPeriod(sessions, period) {
+  var now = new Date(), start, end;
+  switch (period) {
+    case 'today': start = new Date(now.getFullYear(),now.getMonth(),now.getDate()); end = new Date(start.getTime()+86400000); break;
+    case 'week': var day=now.getDay()||7; start=new Date(now); start.setDate(now.getDate()-day+1); start.setHours(0,0,0,0); end=new Date(start.getTime()+7*86400000); break;
+    case 'month': start=new Date(now.getFullYear(),now.getMonth(),1); end=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59); break;
+    case 'year': start=new Date(now.getFullYear(),0,1); end=new Date(now.getFullYear(),11,31,23,59,59); break;
+    default: return sessions;
+  }
+  return sessions.filter(function(s){var d=new Date(s.date);return d>=start&&d<=end;});
+}
+
+/* ---- Fetch events via OAuth ---- */
+var _eventsCache = [];
+var _eventsCacheTime = 0;
+var CACHE_TTL = 60000;
+
+async function fetchGCalEvents(forceRefresh) {
+  if (!forceRefresh && _eventsCache.length && Date.now() - _eventsCacheTime < CACHE_TTL) return _eventsCache;
+
+  var token = localStorage.getItem('gcal_token');
+  var expiry = parseInt(localStorage.getItem('gcal_token_expiry') || '0');
+  if (!token || Date.now() > expiry) {
+    console.warn('No valid OAuth token for fetching events');
+    return _eventsCache;
+  }
+
+  var now = new Date();
+  var min = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  var max = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString();
+
+  var params = new URLSearchParams({
+    timeMin: min, timeMax: max,
+    singleEvents: 'true', orderBy: 'startTime',
+    timeZone: 'Asia/Ho_Chi_Minh', maxResults: '2500'
+  });
+  var url = 'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent('asstrayca@gmail.com') + '/events?' + params.toString();
+
+  try {
+    var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (res.status === 401) { console.warn('Token expired during fetch'); return _eventsCache; }
+    var data = await res.json();
+    if (data.error) { console.warn('GCal error:', data.error.message); return _eventsCache; }
+    _eventsCache = (data.items || []).map(parseGCalEvent);
+    _eventsCacheTime = Date.now();
+    console.log('OAuth fetch: ' + _eventsCache.length + ' events');
+    return _eventsCache;
+  } catch(e) { console.warn('Fetch error:', e); return _eventsCache; }
+}
+
+function parseGCalEvent(ev) {
+  var start = ev.start?.dateTime || ev.start?.date || '';
+  var end = ev.end?.dateTime || ev.end?.date || '';
+  var title = ev.summary || '';
+  var note = ev.description || '';
+  var duration = 0;
+  if (start && end) duration = Math.round((new Date(end) - new Date(start)) / 60000);
+  var student = '', type = 'individual', fee = 0;
+  if (/group|nhóm|nhom/i.test(title)) type = 'group';
+  var parts = title.split(' - ');
+  student = parts.length >= 2 ? parts.slice(1).join(' - ').trim() : title;
+  var feeMatch = note.match(/(?:fee|học phí|hoc phi|gia)[:\s]*(\d+)/i);
+  if (feeMatch) { fee = parseInt(feeMatch[1]); if (fee < 1000) fee *= 1000; }
+  if (!fee) { var kMatch = note.match(/(\d+)k/i); if (kMatch) fee = parseInt(kMatch[1]) * 1000; }
+  return {
+    id: ev.id, name: title, date: start, dateEnd: end, student: student, fee: fee, duration: duration,
+    status: new Date(end) < new Date() ? 'Done' : 'Not started',
+    type: type, color: ev.colorId||'default', note: note, location: ev.location||'', source:'gcal',
+    recurringEventId: ev.recurringEventId || null
+  };
+}
+
+/* ---- GCalSync compatibility layer (so students.js still works) ---- */
+var GCalSync = {
+  fetchEvents: fetchGCalEvents,
+  getCache: function() { return _eventsCache; },
+  filterByPeriod: filterByPeriod,
+  calcRevenue: function(s,p){return filterByPeriod(s,p).filter(function(x){return x.status==='Done'}).reduce(function(sum,x){return sum+(x.fee||0)},0);},
+  calcMinutes: function(s,p){return filterByPeriod(s,p).filter(function(x){return x.status==='Done'}).reduce(function(sum,x){return sum+(x.duration||0)},0);},
+  countSessions: function(s,p){return filterByPeriod(s,p).length;},
+  countDone: function(s,p){return filterByPeriod(s,p).filter(function(x){return x.status==='Done'}).length;},
+  uniqueStudents: function(s){var set=new Set();s.forEach(function(x){if(x.student)set.add(x.student)});return Array.from(set);},
+  upcoming: function(s,limit){var now=new Date();return s.filter(function(x){return new Date(x.date)>=now}).sort(function(a,b){return new Date(a.date)-new Date(b.date)}).slice(0,limit||5);}
+};
+
+/* ---- Render Welcome ---- */
 function renderWelcome() {
-  var el = function(id) { return document.getElementById(id); };
+  var el = function(id){return document.getElementById(id)};
   if (el('welcome-name')) el('welcome-name').textContent = Store.profile.full_name || 'Giáo viên';
   if (el('profile-display-name')) el('profile-display-name').textContent = Store.profile.full_name || 'Giáo viên';
 }
 
+/* ---- DOMContentLoaded ---- */
 document.addEventListener('DOMContentLoaded', async function() {
   syncUI('🔄 Loading...');
   await Store.load();
@@ -26,7 +114,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (hamburger) hamburger.addEventListener('click', function() { document.getElementById('sidebar').classList.toggle('open'); });
 });
 
-/* ===== PROFILE ===== */
+/* ---- Profile ---- */
 async function saveName(n) {
   n = n || 'Giáo viên'; Store.profile.full_name = n; syncUI('🔄...');
   await db.from('profiles').upsert({id:CONFIG.USER_ID, full_name:n, theme:Store.profile.theme, font:Store.profile.font});
@@ -36,7 +124,7 @@ async function setTheme(t) {
   document.body.setAttribute('data-theme', t);
   document.querySelectorAll('.theme-toggle .btn').forEach(function(b){b.classList.remove('active')});
   if(t==='light'){var b=document.querySelector('.theme-toggle .btn:first-child');if(b)b.classList.add('active');}
-  else{var b=document.querySelector('.theme-toggle .btn:last-child');if(b)b.classList.add('active');}
+  else{var b2=document.querySelector('.theme-toggle .btn:last-child');if(b2)b2.classList.add('active');}
   if(Store.profile.theme!==t){Store.profile.theme=t;await db.from('profiles').upsert({id:CONFIG.USER_ID,full_name:Store.profile.full_name,theme:t,font:Store.profile.font});}
 }
 async function setFont(f) {
@@ -50,17 +138,16 @@ async function nukeData(){
   closeNuke();renderWelcome();updateDashboard();renderStudents();renderGroups();syncUI('✅ Deleted');
 }
 
-/* ===== EXTERNAL DATA ===== */
-var gcalEvents = [];
+/* ---- Load external data ---- */
 async function loadAllExternalData() {
   try {
-    gcalEvents = await GCalSync.fetchEvents();
+    await fetchGCalEvents();
     updateDashboard(); updateStats(); renderStudents(); renderGroups(); syncUI('✅ Synced');
-  } catch(e) { console.warn('Load failed:',e); syncUI('⚠️ Offline'); }
+  } catch(e) { console.warn('Load failed:', e); syncUI('⚠️ Offline'); }
 }
 
 function getAllSessions() {
-  var gcal = (typeof GCalSync !== 'undefined') ? GCalSync.getCache() : [];
+  var gcal = _eventsCache.slice();
   var local = (Store.sessions||[]).map(function(s) {
     return {id:s.id, name:s.student_name||s.group_name||'', date:s.date+'T'+(s.start_time||'00:00'),
       dateEnd:s.date+'T'+(s.end_time||'00:00'), student:s.student_name||'', fee:s.fee||0,
@@ -70,11 +157,11 @@ function getAllSessions() {
   var all = gcal.concat(local);
   var studentData = (typeof getStudentData === 'function') ? getStudentData() : [];
   var feeMap = {}; studentData.forEach(function(s){if(s.fee) feeMap[s.name]=s;});
-  all.forEach(function(s) { if(s.student && feeMap[s.student] && (!s.fee||s.fee===0)) s.fee = feeMap[s.student].fee||0; });
+  all.forEach(function(s){if(s.student && feeMap[s.student] && (!s.fee||s.fee===0)) s.fee = feeMap[s.student].fee||0;});
   var map = new Map(); all.forEach(function(s){map.set(s.id,s);}); return Array.from(map.values());
 }
 
-/* ===== DASHBOARD ===== */
+/* ---- Dashboard ---- */
 function toggleWeekList() {
   var list = document.getElementById('week-list');
   var btn = document.getElementById('week-toggle');
@@ -100,17 +187,17 @@ function updateDashboard() {
   var students = (typeof getAllStudents === 'function') ? getAllStudents() : [];
   var activeStudents = students.filter(function(s){return !s.completed;});
 
-  var monthSessions = GCalSync.filterByPeriod(all,'month');
+  var monthSessions = filterByPeriod(all,'month');
   var doneMonth = monthSessions.filter(function(s){return s.status==='Done';});
   var totalRevenue = 0;
   activeStudents.forEach(function(st){
     var stDone = doneMonth.filter(function(s){return s.student===st.name;});
     if(st.feeType==='per-session'||st.feeType==='free-session') totalRevenue += stDone.length * (st.fee||0);
-    else { var m=new Set(); stDone.forEach(function(s){var d=new Date(s.date);m.add(d.getMonth())}); totalRevenue += m.size*(st.fee||0); }
+    else { var m=new Set(); stDone.forEach(function(s){var d2=new Date(s.date);m.add(d2.getMonth())}); totalRevenue += m.size*(st.fee||0); }
   });
 
   var totalMinutes = doneMonth.reduce(function(sum,s){return sum+(s.duration||0);},0);
-  var weekSessions = GCalSync.filterByPeriod(all,'week').length;
+  var weekSessions = filterByPeriod(all,'week').length;
 
   var el = function(id){return document.getElementById(id)};
   if(el('w-students')) el('w-students').textContent = activeStudents.length;
@@ -119,31 +206,31 @@ function updateDashboard() {
   if(el('w-hours')) el('w-hours').textContent = Math.floor(totalMinutes/60)+'h';
 
   // Today
-  var todaySessions = GCalSync.filterByPeriod(all,'today').sort(function(a,b){return new Date(a.date)-new Date(b.date);});
+  var todaySessions = filterByPeriod(all,'today').sort(function(a,b){return new Date(a.date)-new Date(b.date);});
   if(el('today-list')){
     if(todaySessions.length===0) el('today-list').innerHTML='<p class="muted">Hôm nay không có buổi dạy.</p>';
     else el('today-list').innerHTML = todaySessions.map(function(s){ return renderSessionItem(s, false); }).join('');
   }
 
   // Week
-  var weekList = GCalSync.filterByPeriod(all,'week').sort(function(a,b){return new Date(a.date)-new Date(b.date);});
+  var weekList = filterByPeriod(all,'week').sort(function(a,b){return new Date(a.date)-new Date(b.date);});
   if(el('week-list')){
     if(weekList.length===0) el('week-list').innerHTML='<p class="muted">Tuần này không có buổi dạy.</p>';
     else el('week-list').innerHTML = weekList.map(function(s){ return renderSessionItem(s, true); }).join('');
   }
 }
 
-/* ===== STATS ===== */
-var currentStatsMonth = null; // null = all, 'week' = this week, '2026-05' = specific month
+/* ---- Stats ---- */
+var currentStatsMonth = null;
 var currentStatsFilter = 'all';
 
 function buildMonthBar() {
   var bar = document.getElementById('stats-month-bar');
   if (!bar) return;
-  var START_YEAR = 2026, START_MONTH = 4;
+  var START_YEAR = 2026, START_MONTH = 4; // T5/2026 = index 4
   var now = new Date();
   var tabs = [
-    {label:'Tất cả', value:null},
+    {label:'Tất cả', value:'null'},
     {label:'Tuần này', value:'week'}
   ];
   var y = START_YEAR, m = START_MONTH;
@@ -153,21 +240,20 @@ function buildMonthBar() {
     m++; if(m>11){m=0;y++;}
   }
   bar.innerHTML = tabs.map(function(item) {
-    var active = (item.value === currentStatsMonth) ? ' active' : '';
-    var val = item.value === null ? 'null' : "'" + item.value + "'";
-    return '<button class="ptab' + active + '" onclick="setStatsMonth(' + val + ')">' + item.label + '</button>';
+    var isActive = (String(currentStatsMonth) === item.value || (currentStatsMonth === null && item.value === 'null'));
+    return '<button class="ptab' + (isActive?' active':'') + '" onclick="setStatsMonth(\'' + item.value + '\')">' + item.label + '</button>';
   }).join('');
 }
 
 function setStatsMonth(m) {
-  currentStatsMonth = (m === 'null' || m === null) ? null : m;
+  currentStatsMonth = (m === 'null') ? null : m;
   buildMonthBar();
   updateStats();
 }
 
 function getFilteredSessions(all) {
   if (!currentStatsMonth) return all;
-  if (currentStatsMonth === 'week') return GCalSync.filterByPeriod(all, 'week');
+  if (currentStatsMonth === 'week') return filterByPeriod(all, 'week');
   var parts = currentStatsMonth.split('-');
   var yr = parseInt(parts[0]), mo = parseInt(parts[1]) - 1;
   var start = new Date(yr, mo, 1), end = new Date(yr, mo+1, 0, 23, 59, 59);
@@ -191,9 +277,9 @@ function updateStats() {
       earned = stDone.length * (st.fee||0);
       expected = stSessions.length * (st.fee||0);
     } else {
-      var dm = new Set(), am = new Set();
-      stDone.forEach(function(s){var d=new Date(s.date);dm.add(d.getFullYear()+'-'+d.getMonth())});
-      stSessions.forEach(function(s){var d=new Date(s.date);am.add(d.getFullYear()+'-'+d.getMonth())});
+      var dm=new Set(), am=new Set();
+      stDone.forEach(function(s){var d2=new Date(s.date);dm.add(d2.getFullYear()+'-'+d2.getMonth())});
+      stSessions.forEach(function(s){var d2=new Date(s.date);am.add(d2.getFullYear()+'-'+d2.getMonth())});
       earned = dm.size * (st.fee||0);
       expected = am.size * (st.fee||0);
     }
@@ -218,7 +304,6 @@ function updateStats() {
 
   renderStatsDetail(filtered, students);
 
-  // Setup filter tabs
   document.querySelectorAll('.stab').forEach(function(btn) {
     btn.onclick = function() {
       document.querySelectorAll('.stab').forEach(function(b){b.classList.remove('active')});
@@ -239,19 +324,18 @@ function renderStatsDetail(filtered, students) {
 
   if (list.length === 0) { detail.innerHTML = '<p class="muted">Không có dữ liệu.</p>'; return; }
 
-  // Sort by earned desc
   var rows = list.map(function(st) {
     var stSessions = filtered.filter(function(s){return s.student===st.name;});
     var stDone = stSessions.filter(function(s){return s.status==='Done';});
     var earned;
     if(st.feeType==='per-session'||st.feeType==='free-session') earned = stDone.length*(st.fee||0);
-    else { var ms=new Set();stDone.forEach(function(s){var d=new Date(s.date);ms.add(d.getFullYear()+'-'+d.getMonth())});earned=ms.size*(st.fee||0); }
+    else { var ms=new Set();stDone.forEach(function(s){var d2=new Date(s.date);ms.add(d2.getFullYear()+'-'+d2.getMonth())});earned=ms.size*(st.fee||0); }
     var mins = stDone.reduce(function(sum,s){return sum+(s.duration||0)},0);
     var expected;
     if(st.feeType==='per-session'||st.feeType==='free-session') expected = stSessions.length*(st.fee||0);
-    else { var am=new Set();stSessions.forEach(function(s){var d=new Date(s.date);am.add(d.getFullYear()+'-'+d.getMonth())});expected=am.size*(st.fee||0); }
-    var uncollected = Math.max(0, expected - earned);
-    return { st:st, stSessions:stSessions, stDone:stDone, earned:earned, expected:expected, uncollected:uncollected, mins:mins };
+    else { var am=new Set();stSessions.forEach(function(s){var d2=new Date(s.date);am.add(d2.getFullYear()+'-'+d2.getMonth())});expected=am.size*(st.fee||0); }
+    var uncollected2 = Math.max(0, expected - earned);
+    return { st:st, stSessions:stSessions, stDone:stDone, earned:earned, expected:expected, uncollected:uncollected2, mins:mins };
   }).sort(function(a,b){ return b.earned - a.earned; });
 
   detail.innerHTML = rows.map(function(r) {
@@ -271,6 +355,6 @@ function renderStatsDetail(filtered, students) {
   }).join('');
 }
 
-/* ===== INIT ===== */
+/* ---- INIT ---- */
 setTimeout(loadAllExternalData, 800);
 setInterval(loadAllExternalData, 120000);
