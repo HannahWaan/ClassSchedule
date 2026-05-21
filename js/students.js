@@ -468,6 +468,7 @@ function saveStudent(e) {
 
   // Ask to create on Google Calendar
   var addToGcal = document.getElementById('sf-add-gcal');
+  if (addToGcal && addToGcal.checked && editId === '') {
     createStudentOnGCal(name, schedules, repeat);
   }
 
@@ -477,6 +478,11 @@ function saveStudent(e) {
 }
 
 function createStudentOnGCal(name, schedules, repeat) {
+  if (typeof createEvent !== 'function' || typeof isTokenValid !== 'function') {
+    alert('Can dang nhap Google truoc khi tao su kien.');
+    return;
+  }
+  if (typeof isTokenValid === 'function' && isTokenValid() === false) {
     alert('Can dang nhap Google truoc khi tao su kien.');
     return;
   }
@@ -489,6 +495,7 @@ function createStudentOnGCal(name, schedules, repeat) {
   };
 
   schedules.forEach(function(sc) {
+    if (!sc.days || sc.days.length === 0) return;
     var dayMap = ['SU','MO','TU','WE','TH','FR','SA'];
     var byDay = sc.days.map(function(d) { return dayMap[d]; }).join(',');
 
