@@ -2,95 +2,110 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClassSchedule</title>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="favicon.svg">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
 <body data-theme="dark">
 <div class="app">
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-logo"><div class="logo-icon">📅</div><div class="logo-text">Class<span>Schedule</span></div></div>
-        <nav class="sidebar-menu">
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <div class="logo">📅 <span>Class<b>Schedule</b></span></div>
             <a href="#" class="menu-item active" data-tab="welcome"><i>🏠</i><span>Chào mừng</span></a>
             <a href="#" class="menu-item" data-tab="schedule"><i>📋</i><span>Lịch dạy</span></a>
-            <a href="#" class="menu-item" data-tab="add-session"><i>➕</i><span>Thêm buổi</span></a>
             <a href="#" class="menu-item" data-tab="stats"><i>📊</i><span>Thống kê</span></a>
             <a href="#" class="menu-item" data-tab="students"><i>👩‍🎓</i><span>Học viên</span></a>
             <a href="#" class="menu-item" data-tab="groups"><i>👥</i><span>Nhóm</span></a>
             <a href="#" class="menu-item" data-tab="profile"><i>⚙️</i><span>Hồ sơ</span></a>
-        </nav>
-        <div class="mini-cal" id="mini-cal"></div>
-        <div class="sidebar-bottom"><div class="sync-badge" id="sync-status">✅ Synced</div></div>
-    </aside>
+        </div>
+        <div class="sidebar-bottom">
+            <div class="mini-cal" id="mini-cal"></div>
+            <div class="sync-badge" id="sync-status">● Đang tải...</div>
+        </div>
+    </nav>
     <main class="main">
-        <header class="header"><button class="hamburger" id="hamburger">☰</button><h1 class="header-title" id="header-title">Chào mừng</h1></header>
-        <div class="content-with-panel">
-            <div class="page-wrap">
+        <header class="topbar"><button class="hamburger" id="hamburger">☰</button><h1 class="topbar-title" id="topbar-title">Chào mừng</h1></header>
+        <div class="content-wrap">
+            <div class="pages">
+                <!-- WELCOME -->
                 <section class="page active" id="page-welcome">
                     <div class="welcome-banner"><div class="welcome-text"><h2>Xin chào, <span id="welcome-name">Hannah</span> 👋</h2><p>Quản lý lịch dạy thông minh.</p><button class="btn btn-glow" onclick="switchTab('schedule')">📋 Mở lịch dạy</button></div></div>
-                    <div class="grid-4"><div class="card-stat"><div class="card-stat-icon">👩‍🎓</div><div class="card-stat-value" id="w-students">0</div><div class="card-stat-label">Học viên</div></div><div class="card-stat"><div class="card-stat-icon">📚</div><div class="card-stat-value" id="w-week">0</div><div class="card-stat-label">Buổi tuần này</div></div><div class="card-stat"><div class="card-stat-icon">💰</div><div class="card-stat-value" id="w-salary">0k</div><div class="card-stat-label">Tổng lương</div></div><div class="card-stat"><div class="card-stat-icon">⏱️</div><div class="card-stat-value" id="w-hours">0h</div><div class="card-stat-label">Giờ tháng này</div></div></div>
-                    <div class="card"><div class="card-header"><h3>📌 Buổi dạy sắp tới</h3></div><div class="card-body" id="upcoming-list"><p class="muted">Chưa có buổi dạy nào.</p></div></div>
+                    <div class="grid-4">
+                        <div class="card-stat"><div class="card-stat-icon">👩‍🎓</div><div class="card-stat-value" id="w-students">0</div><div class="card-stat-label">Học viên</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">📚</div><div class="card-stat-value" id="w-week">0</div><div class="card-stat-label">Buổi tuần này</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">💰</div><div class="card-stat-value" id="w-salary">0k</div><div class="card-stat-label">Tổng lương</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">⏱️</div><div class="card-stat-value" id="w-hours">0h</div><div class="card-stat-label">Giờ tháng này</div></div>
+                    </div>
+                    <div class="card"><div class="card-header"><h3>📌 Buổi dạy sắp tới</h3></div><div class="card-body" id="upcoming-list"><p class="muted">Đang tải...</p></div></div>
                 </section>
+
+                <!-- SCHEDULE (Google Calendar only) -->
                 <section class="page" id="page-schedule">
-                    <div class="toolbar"><button class="btn btn-primary" onclick="switchTab('add-session')">➕ Thêm buổi</button><button class="btn btn-outline" onclick="exportPDF()">📄 PDF</button><button class="btn btn-outline" onclick="exportExcel()">📊 Excel</button><button class="btn btn-outline" onclick="shareSchedule()">🔗 Chia sẻ</button></div>
-                    <div class="view-tabs"><button class="vtab active" data-view="week">Tuần</button><button class="vtab" data-view="month">Tháng</button><button class="vtab" data-view="day">Ngày</button><button class="vtab" data-view="gcal">📅 GCal</button></div>
-                    <div class="cal-nav"><button class="btn btn-icon" id="nav-prev">‹</button><span class="cal-nav-title" id="cal-nav-title"></span><button class="btn btn-icon" id="nav-next">›</button><button class="btn btn-today" id="nav-today">Hôm nay</button></div>
-                    <div id="calendar-root"></div>
-                    <div id="gcal-embed" style="display:none;width:100%;height:calc(100vh - 160px);border-radius:12px;overflow:hidden;"><iframe id="gcal-iframe" src="" style="width:100%;height:100%;border:none;border-radius:12px;" allowfullscreen></iframe></div>
+                    <div class="gcal-fullscreen">
+                        <iframe id="gcal-iframe" src="https://calendar.google.com/calendar/embed?src=asstrayca%40gmail.com&ctz=Asia%2FHo_Chi_Minh&mode=WEEK&showTitle=0&showNav=1&showPrint=0&showTabs=1&showCalendars=0" style="width:100%;height:100%;border:none;"></iframe>
+                    </div>
                 </section>
-                <section class="page" id="page-add-session">
-                    <div class="card form-card"><div class="card-header"><h3>➕ Thêm buổi dạy</h3></div>
-                    <form id="session-form" class="form">
-                        <div class="field"><label>Loại</label><div class="toggle-row"><button type="button" class="toggle active" id="type-individual" onclick="setSessionType('individual')">👤 Cá nhân</button><button type="button" class="toggle" id="type-group" onclick="setSessionType('group')">👥 Nhóm</button></div></div>
-                        <div class="field" id="field-student"><label>Học viên</label><select id="f-student"><option value="">-- Chọn --</option></select></div>
-                        <div class="field" id="field-group" style="display:none"><label>Nhóm</label><select id="f-group"><option value="">-- Chọn nhóm --</option></select></div>
-                        <div class="field"><label>Bài giảng</label><input type="text" id="f-lesson" required placeholder="VD: Unit 5 - Reading"></div>
-                        <div class="field"><label>Ngày học</label><input type="date" id="f-date" required></div>
-                        <div class="field-row"><div class="field"><label>Giờ bắt đầu</label><input type="time" id="f-start" required></div><div class="field"><label>Giờ kết thúc</label><input type="time" id="f-end" required></div></div>
-                        <div class="field fee-display"><label>Học phí (auto, có thể sửa)</label><div class="auto-fee-box"><input type="number" id="f-fee" value="0" class="fee-input"><span class="fee-detail" id="f-fee-detail">Chọn học viên/nhóm và thời gian</span><span class="fee-value" id="f-fee-display" style="display:none"></span></div></div>
-                        <div class="field"><label>Màu sắc</label><div class="color-picker" id="f-color-picker"><button type="button" class="cpick active" data-color="c1" onclick="pickFormColor('c1')"></button><button type="button" class="cpick" data-color="c2" onclick="pickFormColor('c2')"></button><button type="button" class="cpick" data-color="c3" onclick="pickFormColor('c3')"></button><button type="button" class="cpick" data-color="c4" onclick="pickFormColor('c4')"></button><button type="button" class="cpick" data-color="c5" onclick="pickFormColor('c5')"></button></div><input type="hidden" id="f-color" value="c1"></div>
-                        <div class="field"><label>Địa điểm</label><input type="text" id="f-location" placeholder="Quán cafe / Online..."></div>
-                        <div class="field"><label>Lặp lại</label><select id="f-repeat" onchange="toggleRepeatOptions()"><option value="none">Không lặp</option><option value="daily">Hàng ngày</option><option value="weekly">Mỗi tuần</option><option value="biweekly">Mỗi 2 tuần</option><option value="monthly">Mỗi tháng</option><option value="custom">Tuỳ chỉnh...</option></select></div>
-                        <div class="field repeat-options" id="repeat-options" style="display:none">
-                            <div class="repeat-config">
-                                <div class="repeat-row"><label>Mỗi</label><input type="number" id="f-repeat-interval" value="1" min="1" class="repeat-num"><select id="f-repeat-unit"><option value="day">ngày</option><option value="week" selected>tuần</option><option value="month">tháng</option><option value="year">năm</option></select></div>
-                                <div class="repeat-row" id="repeat-days-row"><label>Vào</label><div class="day-checks"><label class="dchk"><input type="checkbox" value="1"> T2</label><label class="dchk"><input type="checkbox" value="2"> T3</label><label class="dchk"><input type="checkbox" value="3"> T4</label><label class="dchk"><input type="checkbox" value="4"> T5</label><label class="dchk"><input type="checkbox" value="5"> T6</label><label class="dchk"><input type="checkbox" value="6"> T7</label><label class="dchk"><input type="checkbox" value="0"> CN</label></div></div>
-                                <div class="repeat-row"><label>Kết thúc</label></div>
-                                <div class="repeat-end-options"><label class="rend"><input type="radio" name="repeat-end" value="never" checked> Không bao giờ</label><label class="rend"><input type="radio" name="repeat-end" value="date"> Vào <input type="date" id="f-repeat-end-date"></label><label class="rend"><input type="radio" name="repeat-end" value="after"> Sau <input type="number" id="f-repeat-after" value="4" min="1" class="repeat-num"> lần</label></div>
-                            </div>
-                        </div>
-                        <div class="field"><label>Nhắc nhở</label><select id="f-reminder"><option value="0">Không</option><option value="10">10 phút trước</option><option value="30" selected>30 phút trước</option><option value="60">1 giờ trước</option><option value="1440">1 ngày trước</option></select></div>
-                        <div class="field"><label>Ghi chú</label><textarea id="f-note" rows="3" placeholder="Tùy chọn..."></textarea></div>
-                        <div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="switchTab('schedule')">❌ Hủy</button></div>
-                    </form></div>
+
+                <!-- STATS -->
+                <section class="page" id="page-stats">
+                    <div class="period-tabs"><button class="ptab active" data-period="week">Tuần</button><button class="ptab" data-period="month">Tháng</button><button class="ptab" data-period="year">Năm</button><button class="ptab" data-period="all">Tất cả</button></div>
+                    <div class="grid-4">
+                        <div class="card-stat"><div class="card-stat-icon">📚</div><div class="card-stat-value" id="st-total">0</div><div class="card-stat-label">Tổng buổi</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">✅</div><div class="card-stat-value" id="st-done">0</div><div class="card-stat-label">Đã dạy</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">👩‍🎓</div><div class="card-stat-value" id="st-students">0</div><div class="card-stat-label">Học viên</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">💰</div><div class="card-stat-value" id="st-revenue">0k</div><div class="card-stat-label">Doanh thu</div></div>
+                    </div>
+                    <div class="grid-4">
+                        <div class="card-stat"><div class="card-stat-icon">⏱️</div><div class="card-stat-value" id="st-hours">0h</div><div class="card-stat-label">Giờ dạy</div></div>
+                        <div class="card-stat"><div class="card-stat-icon">📈</div><div class="card-stat-value" id="st-avg">0k</div><div class="card-stat-label">TB/buổi</div></div>
+                    </div>
+                    <div class="card"><div class="card-header"><h3>📋 Chi tiết theo học viên</h3></div><div class="card-body" id="stats-detail"><p class="muted">Chọn khoảng thời gian.</p></div></div>
                 </section>
-                <section class="page" id="page-stats"><div class="inline-header"><h3>📊 Thống kê</h3><div class="view-tabs small"><button class="vtab active" data-period="week">Tuần</button><button class="vtab" data-period="month">Tháng</button></div></div><div class="grid-3"><div class="card-stat glow"><div class="card-stat-value" id="s-sessions">0</div><div class="card-stat-label">Tổng buổi</div></div><div class="card-stat glow"><div class="card-stat-value" id="s-students">0</div><div class="card-stat-label">Học viên</div></div><div class="card-stat glow"><div class="card-stat-value" id="s-revenue">0k</div><div class="card-stat-label">Doanh thu</div></div></div><div class="card"><div class="card-header"><h3>📋 Chi tiết</h3></div><div class="card-body" id="stats-list"><p class="muted">Chưa có dữ liệu.</p></div></div></section>
-                <section class="page" id="page-students"><div class="toolbar"><h3>👩‍🎓 Học viên</h3><button class="btn btn-primary" onclick="openStudentModal()">➕ Thêm</button></div><div id="students-root"></div></section>
-                <section class="page" id="page-groups"><div class="toolbar"><h3>👥 Nhóm học</h3><button class="btn btn-primary" onclick="openGroupModal()">➕ Tạo nhóm</button></div><div id="groups-root"></div></section>
-                <section class="page" id="page-profile"><div class="profile-layout"><div class="profile-card avatar-section"><div class="profile-avatar">👩‍🏫</div><h2 class="profile-display-name" id="profile-display-name">Hannah</h2><p class="profile-subtitle">Giáo viên</p></div><div class="profile-card settings-section"><div class="settings-group"><div class="settings-group-title">📝 Thông tin</div><div class="field"><label>Họ tên</label><input type="text" id="p-name" placeholder="Nhập tên..."></div><button class="btn btn-primary btn-sm" onclick="saveProfile()">💾 Lưu tên</button></div><div class="settings-group"><div class="settings-group-title">🎨 Giao diện</div><div class="toggle-row"><button class="toggle" id="t-light" onclick="setTheme('light')">☀️ Sáng</button><button class="toggle active" id="t-dark" onclick="setTheme('dark')">🌙 Tối</button></div></div><div class="settings-group"><div class="settings-group-title">🔤 Font</div><select id="p-font" onchange="setFont(this.value)" class="field-select"><option value="'Be Vietnam Pro',sans-serif">Be Vietnam Pro</option><option value="'Inter',sans-serif">Inter</option><option value="'Nunito',sans-serif">Nunito</option></select></div></div><div class="profile-card danger-section"><div class="settings-group-title">⚠️ Vùng nguy hiểm</div><p class="danger-desc">Xóa toàn bộ dữ liệu.</p><button class="btn btn-danger" onclick="confirmNuke()">🗑️ Xóa toàn bộ</button></div></div></section>
+
+                <!-- STUDENTS (auto from GCal) -->
+                <section class="page" id="page-students">
+                    <div class="toolbar"><h3>👩‍🎓 Học viên</h3><span class="muted" id="student-count"></span></div>
+                    <p class="section-desc">Danh sách tự động từ Google Calendar. Click để xem chi tiết.</p>
+                    <div id="students-root" class="students-grid"></div>
+                </section>
+
+                <!-- GROUPS -->
+                <section class="page" id="page-groups">
+                    <div class="toolbar"><h3>👥 Nhóm học</h3><button class="btn btn-primary" onclick="openGroupModal()">➕ Tạo nhóm</button></div>
+                    <p class="section-desc">Gộp học viên thành nhóm để quản lý dễ hơn.</p>
+                    <div id="groups-root" class="groups-grid"></div>
+                </section>
+
+                <!-- PROFILE -->
+                <section class="page" id="page-profile">
+                    <div class="profile-card"><div class="profile-avatar">👩‍🏫</div><h2 id="profile-display-name">Hannah</h2><p class="muted">Giáo viên</p></div>
+                    <div class="profile-card"><div class="settings-group"><div class="settings-group-title">📝 Thông tin</div><div class="field"><label>Họ tên</label><input type="text" id="p-name" value="Hannah" onchange="saveName(this.value)"></div></div><div class="settings-group"><div class="settings-group-title">🎨 Giao diện</div><div class="theme-toggle"><button class="btn btn-outline" onclick="setTheme('light')">☀️ Sáng</button><button class="btn btn-outline active" onclick="setTheme('dark')">🌙 Tối</button></div></div><div class="settings-group"><div class="settings-group-title">🔤 Font</div><select id="p-font" onchange="setFont(this.value)" class="field-select"><option value="'Be Vietnam Pro',sans-serif">Be Vietnam Pro</option><option value="'Inter',sans-serif">Inter</option><option value="'Nunito',sans-serif">Nunito</option></select></div></div>
+                    <div class="profile-card danger-section"><div class="settings-group-title">⚠️ Vùng nguy hiểm</div><p class="danger-desc">Xóa toàn bộ dữ liệu.</p><button class="btn btn-danger" onclick="confirmNuke()">🗑️ Xóa toàn bộ</button></div>
+                </section>
             </div>
-            <aside class="right-panel hidden" id="right-panel"><div class="rp-header"><span class="rp-title">Chi tiết</span><button class="rp-close" onclick="closeRightPanel()">✕</button></div><div class="rp-body" id="rp-body"><p class="muted">Click vào buổi dạy để xem.</p></div></aside>
+            <!-- RIGHT PANEL -->
+            <aside class="right-panel hidden" id="right-panel"><div class="rp-header"><span class="rp-title">Chi tiết</span><button class="rp-close" onclick="closeRightPanel()">✕</button></div><div class="rp-body" id="rp-body"></div></aside>
         </div>
     </main>
 </div>
-<!-- CONTEXT MENU -->
-<div class="ctx-menu" id="ctx-menu" style="display:none"><div class="ctx-item" onclick="ctxEdit()">✏️ Chỉnh sửa</div><div class="ctx-item ctx-colors">🎨 Màu<div class="ctx-color-row"><span class="ctx-c" data-color="c1" onclick="ctxColor('c1')"></span><span class="ctx-c" data-color="c2" onclick="ctxColor('c2')"></span><span class="ctx-c" data-color="c3" onclick="ctxColor('c3')"></span><span class="ctx-c" data-color="c4" onclick="ctxColor('c4')"></span><span class="ctx-c" data-color="c5" onclick="ctxColor('c5')"></span></div></div><div class="ctx-item" onclick="ctxDuplicate()">📋 Nhân bản</div><div class="ctx-item ctx-danger" onclick="ctxDelete()">🗑️ Xóa</div></div>
 <!-- MODALS -->
-<div class="modal-backdrop" id="modal-student" hidden><div class="modal-box"><div class="modal-top"><h3>Thêm học viên</h3><button class="modal-x" onclick="closeStudentModal()">✕</button></div><form id="student-form" class="form"><div class="field"><label>Họ tên</label><input type="text" id="s-name" required></div><div class="field"><label>Chương trình</label><input type="text" id="s-program" placeholder="IELTS / Piano..."></div><div class="field-row"><div class="field"><label>Học phí (VNĐ)</label><input type="number" id="s-rate" value="0"></div><div class="field"><label>Trên (phút)</label><input type="number" id="s-rate-minutes" value="60"></div></div><div class="field"><label>Level</label><select id="s-level"><option>Beginner</option><option>Elementary</option><option>Intermediate</option><option>Upper-Intermediate</option><option>Advanced</option></select></div><div class="field"><label>Nhận xét</label><textarea id="s-review" rows="2"></textarea></div><div class="field"><label>Ghi chú</label><textarea id="s-note" rows="2"></textarea></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeStudentModal()">Hủy</button></div></form></div></div>
-<div class="modal-backdrop" id="modal-edit-student" hidden><div class="modal-box"><div class="modal-top"><h3>✏️ Sửa học viên</h3><button class="modal-x" onclick="closeEditStudentModal()">✕</button></div><form id="edit-student-form" class="form"><input type="hidden" id="es-id"><div class="field"><label>Họ tên</label><input type="text" id="es-name" required></div><div class="field"><label>Chương trình</label><input type="text" id="es-program"></div><div class="field-row"><div class="field"><label>Học phí</label><input type="number" id="es-rate" value="0"></div><div class="field"><label>Trên (phút)</label><input type="number" id="es-rate-minutes" value="60"></div></div><div class="field"><label>Level</label><select id="es-level"><option>Beginner</option><option>Elementary</option><option>Intermediate</option><option>Upper-Intermediate</option><option>Advanced</option></select></div><div class="field"><label>Nhận xét</label><textarea id="es-review" rows="2"></textarea></div><div class="field"><label>Ghi chú</label><textarea id="es-note" rows="2"></textarea></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Cập nhật</button><button type="button" class="btn btn-ghost" onclick="closeEditStudentModal()">Hủy</button></div></form></div></div>
-<div class="modal-backdrop" id="modal-edit-group" hidden><div class="modal-box"><div class="modal-top"><h3>✏️ Sửa nhóm</h3><button class="modal-x" onclick="closeEditGroupModal()">✕</button></div><form id="edit-group-form" class="form"><input type="hidden" id="eg-id"><div class="field"><label>Tên nhóm</label><input type="text" id="eg-name" required></div><div class="field"><label>Chương trình</label><input type="text" id="eg-program"></div><div class="field-row"><div class="field"><label>Học phí</label><input type="number" id="eg-rate" value="0"></div><div class="field"><label>Trên (phút)</label><input type="number" id="eg-rate-minutes" value="60"></div></div><div class="field"><label>Ghi chú</label><textarea id="eg-note" rows="2"></textarea></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Cập nhật</button><button type="button" class="btn btn-ghost" onclick="closeEditGroupModal()">Hủy</button></div></form></div></div>
-<div class="modal-backdrop" id="modal-group" hidden><div class="modal-box modal-lg"><div class="modal-top"><h3>Tạo nhóm</h3><button class="modal-x" onclick="closeGroupModal()">✕</button></div><form id="group-form" class="form"><div class="field"><label>Tên nhóm</label><input type="text" id="g-name" required></div><div class="field"><label>Chương trình</label><input type="text" id="g-program"></div><div class="field-row"><div class="field"><label>Học phí nhóm</label><input type="number" id="g-rate" value="0"></div><div class="field"><label>Trên (phút)</label><input type="number" id="g-rate-minutes" value="60"></div></div><div class="field"><label>Thêm học viên</label><div class="tag-input-wrap" id="g-tag-wrap"><div class="tag-chips" id="g-chips"></div><input type="text" class="tag-search" id="g-search" placeholder="Gõ tên..." autocomplete="off"><div class="tag-dropdown" id="g-dropdown"></div></div></div><div class="field"><label>Ghi chú</label><textarea id="g-note" rows="2"></textarea></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeGroupModal()">Hủy</button></div></form></div></div>
+<div class="modal-backdrop" id="modal-group" hidden><div class="modal-box modal-lg"><div class="modal-top"><h3>Tạo nhóm</h3><button class="modal-x" onclick="closeGroupModal()">✕</button></div><form id="group-form" class="form"><div class="field"><label>Tên nhóm</label><input type="text" id="g-name" required></div><div class="field"><label>Chương trình</label><input type="text" id="g-program"></div><div class="field"><label>Chọn học viên</label><div class="tag-input-wrap" id="g-tag-wrap"><div class="tag-chips" id="g-chips"></div><input type="text" class="tag-search" id="g-search" placeholder="Gõ tên..." autocomplete="off"><div class="tag-dropdown" id="g-dropdown"></div></div></div><div class="field"><label>Ghi chú</label><textarea id="g-note" rows="2"></textarea></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Lưu</button><button type="button" class="btn btn-ghost" onclick="closeGroupModal()">Hủy</button></div></form></div></div>
 <div class="modal-backdrop" id="modal-nuke" hidden><div class="modal-box modal-danger"><div class="modal-top"><h3>⚠️ Xác nhận</h3><button class="modal-x" onclick="closeNuke()">✕</button></div><p style="margin-bottom:16px;color:var(--text2)">Xóa <strong style="color:var(--danger)">TOÀN BỘ</strong>? Không thể hoàn tác!</p><div class="form-actions"><button class="btn btn-danger" onclick="nukeData()">🗑️ Xóa hết</button><button class="btn btn-ghost" onclick="closeNuke()">Hủy</button></div></div></div>
-<div class="modal-backdrop" id="modal-edit" hidden><div class="modal-box modal-lg"><div class="modal-top"><h3>✏️ Sửa buổi dạy</h3><button class="modal-x" onclick="closeEditModal()">✕</button></div><form id="edit-form" class="form"><input type="hidden" id="e-id"><div class="field"><label>Bài giảng</label><input type="text" id="e-lesson" required></div><div class="field"><label>Ngày</label><input type="date" id="e-date" required></div><div class="field-row"><div class="field"><label>Bắt đầu</label><input type="time" id="e-start" required></div><div class="field"><label>Kết thúc</label><input type="time" id="e-end" required></div></div><div class="field"><label>Học phí (có thể sửa)</label><input type="number" id="e-fee" value="0"></div><div class="field"><label>Địa điểm</label><input type="text" id="e-location"></div><div class="field"><label>Màu</label><div class="color-picker" id="e-color-picker"><button type="button" class="cpick active" data-color="c1" onclick="pickEditColor('c1')"></button><button type="button" class="cpick" data-color="c2" onclick="pickEditColor('c2')"></button><button type="button" class="cpick" data-color="c3" onclick="pickEditColor('c3')"></button><button type="button" class="cpick" data-color="c4" onclick="pickEditColor('c4')"></button><button type="button" class="cpick" data-color="c5" onclick="pickEditColor('c5')"></button></div><input type="hidden" id="e-color" value="c1"></div><div class="field"><label>Lặp lại</label><select id="e-repeat"><option value="none">Không lặp</option><option value="daily">Hàng ngày</option><option value="weekly">Mỗi tuần</option><option value="biweekly">Mỗi 2 tuần</option><option value="monthly">Mỗi tháng</option></select></div><div class="field"><label>Ghi chú</label><textarea id="e-note" rows="2"></textarea></div><div class="form-actions"><button type="submit" class="btn btn-primary">💾 Cập nhật</button><button type="button" class="btn btn-ghost" onclick="closeEditModal()">Hủy</button></div></form></div></div>
-<div class="modal-backdrop" id="modal-assign" hidden><div class="modal-box"><div class="modal-top"><h3>Gán nhóm</h3><button class="modal-x" onclick="closeAssignModal()">✕</button></div><p id="assign-name" style="margin-bottom:12px;font-weight:600"></p><select id="assign-group-select" class="field-select" style="margin-bottom:16px"><option value="">-- Không thuộc nhóm --</option></select><div class="form-actions"><button class="btn btn-primary" onclick="confirmAssign()">✅ Xác nhận</button><button class="btn btn-ghost" onclick="closeAssignModal()">Hủy</button></div></div></div>
-<!-- SCOPE MODAL -->
-<div class="modal-backdrop" id="modal-scope" hidden><div class="modal-box"><div class="modal-top"><h3>Áp dụng thay đổi?</h3><button class="modal-x" onclick="closeScopeModal()">✕</button></div><p style="margin-bottom:16px;color:var(--text2)">Thay đổi này áp dụng cho:</p><div style="display:flex;flex-direction:column;gap:8px"><button class="btn btn-outline" onclick="scopeChoice('today')">📌 Chỉ hôm nay</button><button class="btn btn-outline" onclick="scopeChoice('future')">➡️ Từ nay trở đi</button><button class="btn btn-primary" onclick="scopeChoice('all')">🔄 Toàn bộ</button></div></div></div>
-<script src="js/config.js"></script><script src="js/db.js"></script><script src="js/ui.js"></script><script src="js/calendar.js"></script><script src="js/stats.js"></script><script src="js/students.js"></script><script src="js/groups.js"></script><script src="js/sessions.js"></script><script src="js/export.js"></script><script src="js/profile.js"></script><script src="js/gcal-sync.js"></script>
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/students.js"></script>
+<script src="js/groups.js"></script>
+<script src="js/sessions.js"></script>
+<script src="js/export.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/gcal-sync.js"></script>
 <script src="js/notion-sync.js"></script>
 <script src="js/app.js"></script>
 </body>

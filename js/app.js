@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded',async function(){
 
 
 
+
 /* ===== GOOGLE CALENDAR + NOTION INTEGRATION ===== */
 let gcalEvents = [];
 let notionSessions = [];
@@ -59,9 +60,13 @@ async function loadAllExternalData() {
     if (gcal.status === 'fulfilled') gcalEvents = gcal.value;
     if (notion.status === 'fulfilled') notionSessions = notion.value;
     updateDashboard();
+    updateStats();
+    renderStudents();
+    renderGroups();
     if (typeof syncUI === 'function') syncUI('Synced');
   } catch (e) {
     console.warn('External data load failed:', e);
+    if (typeof syncUI === 'function') syncUI('Offline');
   }
 }
 
@@ -109,6 +114,55 @@ function updateDashboard() {
     }
   }
 }
+
+function updateStats(period) {
+  period = period || document.querySelector('.ptab.active')?.dataset?.period || 'month';
+  const all = getAllSessions();
+  const filtered = GCalSync.filterByPeriod(all, period);
+  const done = filtered.filter(s => s.status === 'Done');
+  const revenue = done.reduce((sum, s) => sum + (s.fee || 0), 0);
+  const minutes = done.reduce((sum, s) => sum + (s.duration || 0), 0);
+  const students = [...new Set(filtered.map(s => s.student).filter(Boolean))].length;
+  const avg = done.length > 0 ? Math.round(revenue / done.length / 1000) : 0;
+
+  const el = (id) => document.getElementById(id);
+  if (el('st-total')) el('st-total').textContent = filtered.length;
+  if (el('st-done')) el('st-done').textContent = done.length;
+  if (el('st-students')) el('st-students').textContent = students;
+  if (el('st-revenue')) el('st-revenue').textContent = Math.round(revenue / 1000) + 'k';
+  if (el('st-hours')) el('st-hours').textContent = Math.floor(minutes / 60) + 'h';
+  if (el('st-avg')) el('st-avg').textContent = avg + 'k';
+
+  // Chi tiet theo hoc vien
+  if (el('stats-detail')) {
+    const studentMap = new Map();
+    done.forEach(s => {
+      if (!s.student) return;
+      if (!studentMap.has(s.student)) studentMap.set(s.student, { count: 0, fee: 0, min: 0 });
+      const st = studentMap.get(s.student);
+      st.count++; st.fee += s.fee || 0; st.min += s.duration || 0;
+    });
+    const rows = [...studentMap.entries()].sort((a,b) => b[1].fee - a[1].fee);
+    if (rows.length === 0) {
+      el('stats-detail').innerHTML = '<p class="muted">Chưa có dữ liệu.</p>';
+    } else {
+      el('stats-detail').innerHTML = rows.map(([name, d]) =>
+        '<div class="stats-student-row"><span class="stats-student-name">' + name + '</span><span class="stats-student-info">' + d.count + ' buổi · ' + Math.round(d.fee/1000) + 'k · ' + Math.floor(d.min/60) + 'h</span></div>'
+      ).join('');
+    }
+  }
+}
+
+// Period tabs
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.ptab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      updateStats(this.dataset.period);
+    });
+  });
+});
 
 setTimeout(loadAllExternalData, 800);
 setInterval(loadAllExternalData, 120000);

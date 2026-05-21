@@ -1,30 +1,76 @@
-function renderStudents(){
-    var el=document.getElementById('students-root');
-    if(!Store.students.length){el.innerHTML='<p class="muted">Chưa có học viên nào.</p>';return;}
-    el.innerHTML=Store.students.map(function(s){
-        var ri=s.rate?formatMoney(s.rate)+'/'+s.rate_minutes+'p':'';
-        var grp=Store.groups.find(function(g){return g.id===s.group_id;});
-        var grpTag=grp?'<span class="stu-group-tag">👥 '+grp.name+'</span>':'';
-        return '<div class="stu-card" onclick="showStudentPanel(\''+s.id+'\')"><div class="stu-info"><h4>'+s.name+'</h4><p>📚 '+(s.program||'—')+' · 🎯 '+s.level+'</p>'+(ri?'<p class="stu-rate">💰 '+ri+'</p>':'')+(s.review?'<p>💬 '+s.review+'</p>':'')+grpTag+'</div><div class="stu-actions" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="openEditStudentModal(\''+s.id+'\')">✏️</button><button class="btn btn-outline btn-sm" onclick="openAssignModal(\''+s.id+'\')">👥</button><button class="btn btn-danger btn-sm" onclick="deleteStudent(\''+s.id+'\')">🗑</button></div></div>';
-    }).join('');
+/* ===== STUDENTS - Auto from Google Calendar ===== */
+
+function renderStudents() {
+  const root = document.getElementById('students-root');
+  const countEl = document.getElementById('student-count');
+  if (!root) return;
+
+  const all = getAllSessions ? getAllSessions() : [];
+  
+  // Gom theo ten hoc vien
+  const studentMap = new Map();
+  all.forEach(s => {
+    if (!s.student) return;
+    if (!studentMap.has(s.student)) {
+      studentMap.set(s.student, { name: s.student, sessions: [], totalFee: 0, totalMin: 0 });
+    }
+    const st = studentMap.get(s.student);
+    st.sessions.push(s);
+    st.totalFee += s.fee || 0;
+    st.totalMin += s.duration || 0;
+  });
+
+  const students = [...studentMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+  if (countEl) countEl.textContent = students.length + ' học viên';
+
+  if (students.length === 0) {
+    root.innerHTML = '<p class="muted">Chưa có dữ liệu từ Google Calendar.</p>';
+    return;
+  }
+
+  root.innerHTML = students.map(st => {
+    const done = st.sessions.filter(s => s.status === 'Done').length;
+    const upcoming = st.sessions.filter(s => s.status !== 'Done').length;
+    const hours = Math.floor(st.totalMin / 60);
+    const mins = st.totalMin % 60;
+    const fee = Math.round(st.totalFee / 1000) + 'k';
+    return '<div class="student-card-auto" onclick="showStudentDetail(\'' + st.name.replace(/'/g, "\\'") + '\')">' +
+      '<div class="student-name">' + st.name + '</div>' +
+      '<div class="student-meta">' +
+        '<span>📚 ' + st.sessions.length + ' buổi (' + done + ' xong, ' + upcoming + ' sắp tới)</span>' +
+        '<span>⏱️ ' + hours + 'h' + (mins > 0 ? mins + 'p' : '') + '</span>' +
+        '<span>💰 ' + fee + '</span>' +
+      '</div></div>';
+  }).join('');
 }
 
-async function saveStudent(e){e.preventDefault();syncUI('🔄 Lưu...');var obj={user_id:CONFIG.USER_ID,name:document.getElementById('s-name').value,program:document.getElementById('s-program').value,rate:parseInt(document.getElementById('s-rate').value)||0,rate_minutes:parseInt(document.getElementById('s-rate-minutes').value)||60,level:document.getElementById('s-level').value,review:document.getElementById('s-review').value,note:document.getElementById('s-note').value};var r=await db.from('students').insert(obj).select();if(r.error){alert('❌ '+r.error.message);syncUI('❌');return;}Store.students.push(r.data[0]);Store.buildColorMap();document.getElementById('student-form').reset();closeStudentModal();renderStudents();populateDropdown();syncUI('✅ Synced');}
+function showStudentDetail(name) {
+  const all = getAllSessions ? getAllSessions() : [];
+  const sessions = all.filter(s => s.student === name);
+  const done = sessions.filter(s => s.status === 'Done');
+  const upcoming = sessions.filter(s => s.status !== 'Done').sort((a,b) => new Date(a.date) - new Date(b.date));
+  const totalFee = done.reduce((sum, s) => sum + (s.fee || 0), 0);
+  const totalMin = done.reduce((sum, s) => sum + (s.duration || 0), 0);
 
-async function saveEditStudent(e){
-    e.preventDefault();
-    openScopeModal(async function(scope){
-        syncUI('🔄...');var id=document.getElementById('es-id').value;
-        var updates={name:document.getElementById('es-name').value,program:document.getElementById('es-program').value,rate:parseInt(document.getElementById('es-rate').value)||0,rate_minutes:parseInt(document.getElementById('es-rate-minutes').value)||60,level:document.getElementById('es-level').value,review:document.getElementById('es-review').value,note:document.getElementById('es-note').value};
-        var r=await db.from('students').update(updates).eq('id',id).select();
-        if(r.error){alert('❌ '+r.error.message);syncUI('❌');return;}
-        var idx=Store.students.findIndex(function(x){return x.id===id;});
-        if(idx>=0&&r.data&&r.data[0])Store.students[idx]=r.data[0];
-        closeEditStudentModal();renderStudents();populateDropdown();syncUI('✅ Synced');
-    });
+  const panel = document.getElementById('rp-body');
+  const rp = document.getElementById('right-panel');
+  if (!panel || !rp) return;
+
+  panel.innerHTML = '<h3 style="margin-bottom:12px">' + name + '</h3>' +
+    '<div class="student-meta" style="margin-bottom:16px">' +
+      '<span>📚 Tổng: ' + sessions.length + ' buổi (' + done.length + ' xong)</span>' +
+      '<span>⏱️ ' + Math.floor(totalMin/60) + 'h' + (totalMin%60 > 0 ? totalMin%60 + 'p' : '') + '</span>' +
+      '<span>💰 Đã thu: ' + Math.round(totalFee/1000) + 'k</span>' +
+    '</div>' +
+    (upcoming.length > 0 ? '<h4 style="margin-bottom:8px;color:var(--accent)">Sắp tới</h4>' + upcoming.slice(0,5).map(s => {
+      const d = new Date(s.date);
+      return '<div class="upcoming-item"><span class="upcoming-time">' + d.toLocaleDateString('vi-VN',{weekday:'short',day:'numeric',month:'numeric'}) + '</span><span class="upcoming-name">' + s.name + '</span></div>';
+    }).join('') : '') +
+    (done.length > 0 ? '<h4 style="margin:12px 0 8px;color:var(--text-muted)">Đã hoàn thành</h4>' + done.slice(-5).reverse().map(s => {
+      const d = new Date(s.date);
+      return '<div class="upcoming-item" style="opacity:0.7"><span class="upcoming-time">' + d.toLocaleDateString('vi-VN',{day:'numeric',month:'numeric'}) + '</span><span class="upcoming-name">' + s.name + '</span><span class="upcoming-fee">' + Math.round((s.fee||0)/1000) + 'k</span></div>';
+    }).join('') : '');
+
+  rp.classList.remove('hidden');
 }
-
-async function deleteStudent(id){if(!confirm('Xóa?'))return;syncUI('🔄...');await db.from('students').delete().eq('id',id);Store.students=Store.students.filter(function(s){return s.id!==id;});Store.buildColorMap();renderStudents();populateDropdown();syncUI('✅ Synced');}
-async function confirmAssign(){var sel=document.getElementById('assign-group-select');var gid=sel.value||null;var sid=sel.dataset.studentId;syncUI('🔄...');await db.from('students').update({group_id:gid}).eq('id',sid);var stu=Store.students.find(function(s){return s.id===sid;});if(stu)stu.group_id=gid;closeAssignModal();renderStudents();renderGroups();syncUI('✅ Synced');}
-function populateDropdown(){var sel=document.getElementById('f-student');sel.innerHTML='<option value="">-- Chọn --</option>'+Store.students.map(function(s){return'<option value="'+s.id+'">'+s.name+(s.rate?' ('+formatMoney(s.rate)+'/'+s.rate_minutes+'p)':'')+'</option>';}).join('');}
-function populateGroupDropdown(){var sel=document.getElementById('f-group');sel.innerHTML='<option value="">-- Chọn nhóm --</option>'+Store.groups.map(function(g){return'<option value="'+g.id+'">'+g.name+(g.rate?' ('+formatMoney(g.rate)+'/'+g.rate_minutes+'p)':'')+'</option>';}).join('');}

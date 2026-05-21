@@ -1,32 +1,125 @@
-var tagMembers=[];
-function initTagInput(){tagMembers=[];document.getElementById('g-chips').innerHTML='';document.getElementById('g-search').value='';document.getElementById('g-dropdown').classList.remove('open');}
-function handleTagSearch(){var q=document.getElementById('g-search').value.toLowerCase();var dd=document.getElementById('g-dropdown');if(!q){dd.classList.remove('open');return;}var results=Store.students.filter(function(s){return s.name.toLowerCase().includes(q)&&tagMembers.indexOf(s.id)===-1;});if(!results.length){dd.classList.remove('open');return;}dd.innerHTML=results.map(function(s){return'<div class="tag-option" onclick="addTagMember(\''+s.id+'\')"><span>'+s.name+'</span><span class="to-prog">'+(s.program||'')+'</span></div>';}).join('');dd.classList.add('open');}
-function addTagMember(id){if(tagMembers.indexOf(id)>=0)return;tagMembers.push(id);var s=Store.students.find(function(x){return x.id===id;});if(!s)return;document.getElementById('g-chips').innerHTML+=('<div class="tag-chip" data-id="'+id+'">'+s.name+' <span class="tag-chip-x" onclick="removeTagMember(\''+id+'\')">✕</span></div>');document.getElementById('g-search').value='';document.getElementById('g-dropdown').classList.remove('open');}
-function removeTagMember(id){tagMembers=tagMembers.filter(function(x){return x!==id;});var chip=document.querySelector('.tag-chip[data-id="'+id+'"]');if(chip)chip.remove();}
+/* ===== GROUPS - Gop hoc vien tu GCal ===== */
 
-async function saveGroup(e){e.preventDefault();syncUI('🔄 Lưu...');var obj={user_id:CONFIG.USER_ID,name:document.getElementById('g-name').value,program:document.getElementById('g-program').value,rate:parseInt(document.getElementById('g-rate').value)||0,rate_minutes:parseInt(document.getElementById('g-rate-minutes').value)||60,note:document.getElementById('g-note').value};var r=await db.from('groups').insert(obj).select();if(r.error){alert('❌ '+r.error.message);syncUI('❌');return;}var grp=r.data[0];Store.groups.push(grp);Store.buildColorMap();for(var i=0;i<tagMembers.length;i++){await db.from('students').update({group_id:grp.id}).eq('id',tagMembers[i]);var stu=Store.students.find(function(x){return x.id===tagMembers[i];});if(stu)stu.group_id=grp.id;}document.getElementById('group-form').reset();initTagInput();closeGroupModal();renderGroups();renderStudents();populateGroupDropdown();syncUI('✅ Synced');}
-
-async function saveEditGroup(e){
-    e.preventDefault();
-    openScopeModal(async function(scope){
-        syncUI('🔄...');var id=document.getElementById('eg-id').value;
-        var updates={name:document.getElementById('eg-name').value,program:document.getElementById('eg-program').value,rate:parseInt(document.getElementById('eg-rate').value)||0,rate_minutes:parseInt(document.getElementById('eg-rate-minutes').value)||60,note:document.getElementById('eg-note').value};
-        var r=await db.from('groups').update(updates).eq('id',id).select();
-        if(r.error){alert('❌ '+r.error.message);syncUI('❌');return;}
-        var idx=Store.groups.findIndex(function(x){return x.id===id;});
-        if(idx>=0&&r.data&&r.data[0])Store.groups[idx]=r.data[0];
-        closeEditGroupModal();renderGroups();populateGroupDropdown();syncUI('✅ Synced');
-    });
+// Groups luu local (localStorage vi don gian)
+function getGroups() {
+  try { return JSON.parse(localStorage.getItem('cs-groups') || '[]'); } catch(e) { return []; }
+}
+function saveGroups(groups) {
+  localStorage.setItem('cs-groups', JSON.stringify(groups));
 }
 
-async function deleteGroup(id){if(!confirm('Xóa nhóm?'))return;syncUI('🔄...');await db.from('groups').delete().eq('id',id);Store.groups=Store.groups.filter(function(g){return g.id!==id;});Store.students.forEach(function(s){if(s.group_id===id)s.group_id=null;});Store.buildColorMap();renderGroups();renderStudents();populateGroupDropdown();syncUI('✅ Synced');}
+function renderGroups() {
+  const root = document.getElementById('groups-root');
+  if (!root) return;
+  const groups = getGroups();
 
-function renderGroups(){
-    var el=document.getElementById('groups-root');
-    if(!Store.groups.length){el.innerHTML='<p class="muted">Chưa có nhóm nào.</p>';return;}
-    el.innerHTML=Store.groups.map(function(g){
-        var members=Store.students.filter(function(s){return s.group_id===g.id;});
-        var ri=g.rate?formatMoney(g.rate)+'/'+g.rate_minutes+'p':'';
-        return '<div class="group-card" onclick="showGroupPanel(\''+g.id+'\')"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h4>'+g.name+'</h4><p>📚 '+(g.program||'—')+'</p>'+(ri?'<p style="color:var(--success);font-size:.82rem;font-weight:600">💰 '+ri+'</p>':'')+'<div class="group-members">'+members.map(function(m){return'<span class="group-member-tag">'+m.name+'</span>';}).join('')+'</div></div><div onclick="event.stopPropagation()" style="display:flex;gap:6px"><button class="btn btn-primary btn-sm" onclick="openEditGroupModal(\''+g.id+'\')">✏️</button><button class="btn btn-danger btn-sm" onclick="deleteGroup(\''+g.id+'\')">🗑</button></div></div></div>';
-    }).join('');
+  if (groups.length === 0) {
+    root.innerHTML = '<p class="muted">Chưa có nhóm nào. Bấm "Tạo nhóm" để gộp học viên.</p>';
+    return;
+  }
+
+  const all = getAllSessions ? getAllSessions() : [];
+
+  root.innerHTML = groups.map((g, i) => {
+    // Tinh thong ke cho nhom
+    const memberSessions = all.filter(s => g.members.includes(s.student));
+    const totalFee = memberSessions.filter(s => s.status === 'Done').reduce((sum, s) => sum + (s.fee||0), 0);
+    return '<div class="student-card-auto">' +
+      '<div class="student-name">' + g.name + ' <span style="font-size:0.8rem;color:var(--text-muted)">(' + g.members.length + ' học viên)</span></div>' +
+      '<div class="student-meta">' +
+        '<span>👥 ' + g.members.join(', ') + '</span>' +
+        (g.program ? '<span>📖 ' + g.program + '</span>' : '') +
+        '<span>💰 ' + Math.round(totalFee/1000) + 'k (đã thu)</span>' +
+      '</div>' +
+      '<div style="margin-top:10px;display:flex;gap:8px">' +
+        '<button class="btn btn-ghost" onclick="editGroup(' + i + ')">✏️</button>' +
+        '<button class="btn btn-ghost" onclick="deleteGroup(' + i + ')">🗑️</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function openGroupModal() {
+  document.getElementById('modal-group').hidden = false;
+  populateGroupTagInput();
+}
+function closeGroupModal() { document.getElementById('modal-group').hidden = true; }
+
+function populateGroupTagInput() {
+  // Lay danh sach hoc vien tu GCal
+  const all = getAllSessions ? getAllSessions() : [];
+  const names = [...new Set(all.map(s => s.student).filter(Boolean))].sort();
+  const dropdown = document.getElementById('g-dropdown');
+  const search = document.getElementById('g-search');
+  if (!dropdown || !search) return;
+
+  window._groupTagMembers = [];
+
+  search.oninput = function() {
+    const q = this.value.toLowerCase();
+    const filtered = names.filter(n => n.toLowerCase().includes(q) && !window._groupTagMembers.includes(n));
+    dropdown.innerHTML = filtered.map(n => '<div class="tag-option" onclick="addGroupMember(\'' + n.replace(/'/g,"\\'") + '\')">' + n + '</div>').join('');
+    dropdown.style.display = filtered.length ? 'block' : 'none';
+  };
+}
+
+function addGroupMember(name) {
+  if (window._groupTagMembers.includes(name)) return;
+  window._groupTagMembers.push(name);
+  renderGroupChips();
+  document.getElementById('g-search').value = '';
+  document.getElementById('g-dropdown').style.display = 'none';
+}
+
+function removeGroupMember(name) {
+  window._groupTagMembers = window._groupTagMembers.filter(n => n !== name);
+  renderGroupChips();
+}
+
+function renderGroupChips() {
+  const chips = document.getElementById('g-chips');
+  if (!chips) return;
+  chips.innerHTML = window._groupTagMembers.map(n => '<span class="tag-chip">' + n + ' <button type="button" onclick="removeGroupMember(\'' + n.replace(/'/g,"\\'") + '\')">✕</button></span>').join('');
+}
+
+// Save group
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('group-form');
+  if (form) form.onsubmit = function(e) {
+    e.preventDefault();
+    const name = document.getElementById('g-name').value.trim();
+    const program = document.getElementById('g-program')?.value.trim() || '';
+    const note = document.getElementById('g-note')?.value.trim() || '';
+    if (!name || !window._groupTagMembers.length) return alert('Nhập tên nhóm và chọn ít nhất 1 học viên');
+    const groups = getGroups();
+    groups.push({ name, program, note, members: [...window._groupTagMembers] });
+    saveGroups(groups);
+    closeGroupModal();
+    renderGroups();
+    form.reset();
+    window._groupTagMembers = [];
+    renderGroupChips();
+  };
+});
+
+function deleteGroup(i) {
+  if (!confirm('Xóa nhóm này?')) return;
+  const groups = getGroups();
+  groups.splice(i, 1);
+  saveGroups(groups);
+  renderGroups();
+}
+
+function editGroup(i) {
+  const groups = getGroups();
+  const g = groups[i];
+  if (!g) return;
+  document.getElementById('g-name').value = g.name;
+  if (document.getElementById('g-program')) document.getElementById('g-program').value = g.program || '';
+  if (document.getElementById('g-note')) document.getElementById('g-note').value = g.note || '';
+  window._groupTagMembers = [...g.members];
+  renderGroupChips();
+  openGroupModal();
+  // Xoa nhom cu khi save lai
+  groups.splice(i, 1);
+  saveGroups(groups);
 }
