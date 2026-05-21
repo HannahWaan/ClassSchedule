@@ -60,7 +60,7 @@ function parseGCalEvent(ev) {
   if (start && end) duration = Math.round((new Date(end) - new Date(start)) / 60000);
   var student = '', type = 'individual', fee = 0;
   if (/group|nhóm|nhom/i.test(title)) type = 'group';
-  var parts = title.split(' - ');
+  
   student = parts.length >= 2 ? parts.slice(1).join(' - ').trim() : title;
   var feeMatch = note.match(/(?:fee|học phí|hoc phi|gia)[:\s]*(\d+)/i);
   if (feeMatch) { fee = parseInt(feeMatch[1]); if (fee < 1000) fee *= 1000; }
