@@ -485,28 +485,15 @@ function saveStudent(e) {
 }
 
 function createStudentOnGCal(name, schedules, repeat) {
-  if (typeof createEvent !== 'function' || typeof isTokenValid !== 'function') {
-    alert('Can dang nhap Google truoc khi tao su kien.');
-    return;
-  }
-  if (typeof isTokenValid === 'function' && isTokenValid() === false) {
-    alert('Can dang nhap Google truoc khi tao su kien.');
-    return;
-  }
-
-  var rruleMap = {
-    'weekly': 'RRULE:FREQ=WEEKLY',
-    'daily': 'RRULE:FREQ=DAILY',
-    'biweekly': 'RRULE:FREQ=WEEKLY;INTERVAL=2',
-    'monthly': 'RRULE:FREQ=MONTHLY'
-  };
+  if (typeof createEvent !== 'function') return;
+  if (typeof isTokenValid === 'function' && !isTokenValid()) return;
+  if (!schedules || schedules.length === 0) return;
 
   schedules.forEach(function(sc) {
     if (!sc.days || sc.days.length === 0) return;
     var dayMap = ['SU','MO','TU','WE','TH','FR','SA'];
-    var byDay = sc.days.map(function(d) { return dayMap[d]; }).join(',');
 
-    // Find next occurrence of first day
+    // Find next occurrence of the first selected day
     var today = new Date();
     var targetDay = sc.days[0];
     var diff = (targetDay - today.getDay() + 7) % 7;
@@ -514,26 +501,34 @@ function createStudentOnGCal(name, schedules, repeat) {
     var startDate = new Date(today);
     startDate.setDate(today.getDate() + diff);
 
-    var dateStr = startDate.toISOString().split('T')[0];
-    var startDT = dateStr + 'T' + sc.start + ':00';
-    var endDT = dateStr + 'T' + sc.end + ':00';
-
-    var recurrence = [];
-    if (repeat && repeat !== 'none' && rruleMap[repeat]) {
-      recurrence.push(rruleMap[repeat] + ';BYDAY=' + byDay);
-    }
+    var y = startDate.getFullYear();
+    var m = String(startDate.getMonth()+1).padStart(2,'0');
+    var d = String(startDate.getDate()).padStart(2,'0');
+    var dateStr = y + '-' + m + '-' + d;
+    var startDT = dateStr + 'T' + sc.start + ':00+07:00';
+    var endDT = dateStr + 'T' + sc.end + ':00+07:00';
 
     var eventBody = {
       summary: name,
       start: { dateTime: startDT, timeZone: 'Asia/Ho_Chi_Minh' },
       end: { dateTime: endDT, timeZone: 'Asia/Ho_Chi_Minh' }
     };
-    if (recurrence.length > 0) eventBody.recurrence = recurrence;
+
+    // Add recurrence rule
+    if (repeat && repeat !== 'none') {
+      var byDay = sc.days.map(function(di) { return dayMap[di]; }).join(',');
+      var rule = 'RRULE:FREQ=';
+      if (repeat === 'weekly') rule += 'WEEKLY;BYDAY=' + byDay;
+      else if (repeat === 'daily') rule += 'DAILY';
+      else if (repeat === 'biweekly') rule += 'WEEKLY;INTERVAL=2;BYDAY=' + byDay;
+      else if (repeat === 'monthly') rule += 'MONTHLY';
+      eventBody.recurrence = [rule];
+    }
 
     createEvent(eventBody).then(function() {
       console.log('Created GCal event for: ' + name);
-      if (typeof refreshAfterChange === 'function') refreshAfterChange();
-    }).catch(function(e) { console.warn('Failed to create GCal event:', e); });
+      setTimeout(function(){ if (typeof refreshAfterChange === 'function') refreshAfterChange(); }, 800);
+    }).catch(function(e) { console.warn('GCal create failed:', e); });
   });
 }
 
