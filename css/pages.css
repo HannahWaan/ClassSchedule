@@ -73,3 +73,8 @@
 
 /* Section desc */
 .section-desc{color:var(--text3);font-size:.85rem;margin-bottom:16px}
+
+/* Session item edit icon */
+.s-item{cursor:pointer;position:relative}
+.s-item-edit{position:absolute;right:12px;top:50%;transform:translateY(-50%);opacity:0;transition:opacity .2s;font-size:.9rem}
+.s-item:hover .s-item-edit{opacity:1}

@@ -160,11 +160,12 @@
     </form>
 </div></div>
 
-<!-- MODAL: ADD EVENT (GCal OAuth) -->
+<!-- MODAL: ADD/EDIT EVENT (GCal OAuth) -->
 <div class="modal-backdrop" id="modal-event" hidden>
 <div class="modal-box modal-lg">
-    <div class="modal-top"><h3>Thêm buổi dạy</h3><button class="modal-x" onclick="closeEventModal()">✕</button></div>
-    <form id="event-form" class="form" onsubmit="createGCalEvent(event)">
+    <div class="modal-top"><h3 id="ev-modal-title">Thêm buổi dạy</h3><button class="modal-x" onclick="closeEventModal()">✕</button></div>
+    <form id="event-form" class="form" onsubmit="saveGCalEvent(event)">
+        <input type="hidden" id="ev-id" value="">
         <div class="field"><label>Tên buổi dạy</label><input type="text" id="ev-title" required placeholder="VD: Phát - Biz English"></div>
         <div class="field-row">
             <div class="field"><label>Ngày</label><input type="date" id="ev-date" required></div>
@@ -172,7 +173,11 @@
             <div class="field"><label>Kết thúc</label><input type="time" id="ev-end" required value="20:00"></div>
         </div>
         <div class="field"><label>Ghi chú</label><textarea id="ev-note" rows="2"></textarea></div>
-        <div class="form-actions"><button type="submit" class="btn btn-primary">📅 Tạo sự kiện</button><button type="button" class="btn btn-ghost" onclick="closeEventModal()">Hủy</button></div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">💾 Lưu</button>
+            <button type="button" class="btn btn-danger" id="ev-delete-btn" onclick="deleteGCalEvent()" style="display:none">🗑️ Xóa</button>
+            <button type="button" class="btn btn-ghost" onclick="closeEventModal()">Hủy</button>
+        </div>
     </form>
 </div></div>
 
