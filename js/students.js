@@ -292,6 +292,7 @@ function deleteStudent(key) {
 function handleStudentDelete(mode) {
   if (!_pendingDeleteStudent) return;
   var name = _pendingDeleteStudent;
+  console.log('handleStudentDelete:', mode, 'name:', name);
   var modal = document.getElementById('student-delete-modal');
   if (modal) modal.hidden = true;
 
@@ -299,7 +300,9 @@ function handleStudentDelete(mode) {
 
   // Remove from local data
   var data = getStudentData();
+  console.log('Before delete:', data.length, 'students');
   data = data.filter(function(s) { return s.name !== name; });
+  console.log('After delete:', data.length, 'students');
   saveStudentData(data);
 
   // mode=gcal: also delete GCal events
