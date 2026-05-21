@@ -1,7 +1,13 @@
 /* ===== STUDENTS.JS v3 – search/filter + fixed delete ===== */
 
-var _pendingDeleteStudent = null;
+var addDeletedStudent(name);
+  _pendingDeleteStudent = null;
 var _studentFilters = { search: '', group: '', day: '', feeType: '' };
+
+/* Blacklist: deleted students */
+function getDeletedStudents(){try{return JSON.parse(localStorage.getItem("cs-deleted-students")||"[]")}catch(e){return []}}
+function addDeletedStudent(n){var l=getDeletedStudents();if(l.indexOf(n)===-1){l.push(n);localStorage.setItem("cs-deleted-students",JSON.stringify(l))}}
+function isStudentDeleted(n){return getDeletedStudents().indexOf(n)!==-1}
 
 function getStudentData() {
   try { return JSON.parse(localStorage.getItem('cs-students-v2') || '[]'); } catch(e) { return []; }
@@ -19,7 +25,7 @@ function getAllStudents() {
 
   var result = manual.map(function(s) { return Object.assign({}, s); });
   gcalNames.forEach(function(name) {
-    if (!manualNames[name]) {
+    if (!manualNames[name] && !isStudentDeleted(name)) {
       result.push({ id:'gcal-'+name, name:name, feeType:'free-session', fee:0, schedules:[], repeat:'weekly', note:'', completed:false, group:'', source:'gcal' });
     }
   });
@@ -292,17 +298,15 @@ function deleteStudent(key) {
 function handleStudentDelete(mode) {
   if (!_pendingDeleteStudent) return;
   var name = _pendingDeleteStudent;
-  console.log('handleStudentDelete:', mode, 'name:', name);
   var modal = document.getElementById('student-delete-modal');
   if (modal) modal.hidden = true;
 
-  if (mode === 'cancel') { _pendingDeleteStudent = null; return; }
+  if (mode === 'cancel') { addDeletedStudent(name);
+  _pendingDeleteStudent = null; return; }
 
   // Remove from local data
   var data = getStudentData();
-  console.log('Before delete:', data.length, 'students');
   data = data.filter(function(s) { return s.name !== name; });
-  console.log('After delete:', data.length, 'students');
   saveStudentData(data);
 
   // mode=gcal: also delete GCal events
@@ -330,6 +334,7 @@ function handleStudentDelete(mode) {
     }
   }
 
+  addDeletedStudent(name);
   _pendingDeleteStudent = null;
   renderStudents();
   if (typeof updateDashboard === 'function') updateDashboard();
