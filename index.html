@@ -39,14 +39,14 @@
                         <div class="card-stat"><div class="card-stat-icon">⏱️</div><div class="card-stat-value" id="w-hours">0h</div><div class="card-stat-label">Giờ tháng này</div></div>
                     </div>
                     <div class="card"><div class="card-header"><h3>📌 Buổi dạy sắp tới</h3></div><div class="card-body" id="upcoming-list"><p class="muted">Đang tải...</p></div></div>
-                </section>
+                </div></section>
 
                 <!-- SCHEDULE (Google Calendar only) -->
                 <section class="page" id="page-schedule">
                     <div class="gcal-fullscreen">
                         <iframe id="gcal-iframe" src="https://calendar.google.com/calendar/embed?src=asstrayca%40gmail.com&ctz=Asia%2FHo_Chi_Minh&mode=WEEK&showTitle=0&showNav=1&showPrint=0&showTabs=1&showCalendars=0" style="width:100%;height:100%;border:none;"></iframe>
                     </div>
-                </section>
+                </div></section>
 
                 <!-- STATS -->
                 <section class="page" id="page-stats">
@@ -62,28 +62,28 @@
                         <div class="card-stat"><div class="card-stat-icon">📈</div><div class="card-stat-value" id="st-avg">0k</div><div class="card-stat-label">TB/buổi</div></div>
                     </div>
                     <div class="card"><div class="card-header"><h3>📋 Chi tiết theo học viên</h3></div><div class="card-body" id="stats-detail"><p class="muted">Chọn khoảng thời gian.</p></div></div>
-                </section>
+                </div></section>
 
                 <!-- STUDENTS (auto from GCal) -->
                 <section class="page" id="page-students">
                     <div class="toolbar"><h3>👩‍🎓 Học viên</h3><span class="muted" id="student-count"></span></div>
                     <p class="section-desc">Danh sách tự động từ Google Calendar. Click để xem chi tiết.</p>
                     <div id="students-root" class="students-grid"></div>
-                </section>
+                </div></section>
 
                 <!-- GROUPS -->
                 <section class="page" id="page-groups">
                     <div class="toolbar"><h3>👥 Nhóm học</h3><button class="btn btn-primary" onclick="openGroupModal()">➕ Tạo nhóm</button></div>
                     <p class="section-desc">Gộp học viên thành nhóm để quản lý dễ hơn.</p>
                     <div id="groups-root" class="groups-grid"></div>
-                </section>
+                </div></section>
 
                 <!-- PROFILE -->
-                <section class="page" id="page-profile">
+                <section class="page" id="page-profile"><div class="profile-layout">
                     <div class="profile-card"><div class="profile-avatar">👩‍🏫</div><h2 id="profile-display-name">Hannah</h2><p class="muted">Giáo viên</p></div>
                     <div class="profile-card"><div class="settings-group"><div class="settings-group-title">📝 Thông tin</div><div class="field"><label>Họ tên</label><input type="text" id="p-name" value="Hannah" onchange="saveName(this.value)"></div></div><div class="settings-group"><div class="settings-group-title">🎨 Giao diện</div><div class="theme-toggle"><button class="btn btn-outline" onclick="setTheme('light')">☀️ Sáng</button><button class="btn btn-outline active" onclick="setTheme('dark')">🌙 Tối</button></div></div><div class="settings-group"><div class="settings-group-title">🔤 Font</div><select id="p-font" onchange="setFont(this.value)" class="field-select"><option value="'Be Vietnam Pro',sans-serif">Be Vietnam Pro</option><option value="'Inter',sans-serif">Inter</option><option value="'Nunito',sans-serif">Nunito</option></select></div></div>
                     <div class="profile-card danger-section"><div class="settings-group-title">⚠️ Vùng nguy hiểm</div><p class="danger-desc">Xóa toàn bộ dữ liệu.</p><button class="btn btn-danger" onclick="confirmNuke()">🗑️ Xóa toàn bộ</button></div>
-                </section>
+                </div></section>
             </div>
             <!-- RIGHT PANEL -->
             <aside class="right-panel hidden" id="right-panel"><div class="rp-header"><span class="rp-title">Chi tiết</span><button class="rp-close" onclick="closeRightPanel()">✕</button></div><div class="rp-body" id="rp-body"></div></aside>
