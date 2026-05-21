@@ -1,173 +1,277 @@
-/* ===== GCAL-AUTH.JS - Google Calendar OAuth: create/edit/delete/move ===== */
+/* ===== GCAL-AUTH.JS - OAuth + CRUD + Recurring Delete ===== */
+const GCAL_CLIENT_ID = '508450041217-3bc9vrbbusm6iqn2sbgac620dhn3e3dq.apps.googleusercontent.com';
+const GCAL_SCOPES = 'https://www.googleapis.com/auth/calendar';
+const GCAL_CAL_ID = 'asstrayca@gmail.com';
+const GCAL_BASE = 'https://www.googleapis.com/calendar/v3';
 
-var GCalAuth = (function() {
-  var CLIENT_ID = '508450041217-3bc9vrbbusm6iqn2sbgac620dhn3e3dq.apps.googleusercontent.com';
-  var SCOPES = 'https://www.googleapis.com/auth/calendar';
-  var tokenClient = null;
-  var accessToken = localStorage.getItem('gcal-access-token') || null;
+let tokenClient, accessToken = localStorage.getItem('gcal_token') || null;
+let tokenExpiry = parseInt(localStorage.getItem('gcal_token_expiry') || '0');
 
-  function init() {
-    if (typeof google === 'undefined' || !google.accounts) { console.warn('GIS not loaded'); return; }
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID, scope: SCOPES,
-      callback: function(response) {
-        if (response.access_token) { accessToken = response.access_token; localStorage.setItem('gcal-access-token', accessToken); onAuthSuccess(); }
+/* ---- Token management ---- */
+function isTokenValid() { return accessToken && Date.now() < tokenExpiry; }
+
+function initTokenClient() {
+  if (!google?.accounts?.oauth2) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GCAL_CLIENT_ID,
+    scope: GCAL_SCOPES,
+    callback: (resp) => {
+      if (resp.access_token) {
+        accessToken = resp.access_token;
+        tokenExpiry = Date.now() + (resp.expires_in || 3600) * 1000;
+        localStorage.setItem('gcal_token', accessToken);
+        localStorage.setItem('gcal_token_expiry', tokenExpiry.toString());
+        document.getElementById('gcal-auth-btn')?.classList.add('hidden');
+        document.getElementById('gcal-add-btn')?.classList.remove('hidden');
+        if (window._gcalAuthCallback) { window._gcalAuthCallback(); window._gcalAuthCallback = null; }
       }
-    });
-    if (accessToken) verifyToken();
+    }
+  });
+}
+
+function ensureToken() {
+  return new Promise((resolve, reject) => {
+    if (isTokenValid()) return resolve();
+    if (!tokenClient) { initTokenClient(); }
+    window._gcalAuthCallback = resolve;
+    tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
+  });
+}
+
+async function gcalFetch(url, options = {}) {
+  await ensureToken();
+  options.headers = { ...options.headers, 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' };
+  let res = await fetch(url, options);
+  if (res.status === 401) {
+    localStorage.removeItem('gcal_token');
+    accessToken = null;
+    await ensureToken();
+    options.headers['Authorization'] = 'Bearer ' + accessToken;
+    res = await fetch(url, options);
   }
+  return res;
+}
 
-  function requestAccess() { if (!tokenClient) init(); if (tokenClient) tokenClient.requestAccessToken(); }
+/* ---- CRUD ---- */
+async function createEvent(summary, start, end, description = '') {
+  const body = { summary, start: { dateTime: start, timeZone: 'Asia/Ho_Chi_Minh' }, end: { dateTime: end, timeZone: 'Asia/Ho_Chi_Minh' }, description };
+  const res = await gcalFetch(`${GCAL_BASE}/calendars/${encodeURIComponent(GCAL_CAL_ID)}/events`, { method: 'POST', body: JSON.stringify(body) });
+  return res.json();
+}
 
-  function verifyToken() {
-    fetch('https://www.googleapis.com/calendar/v3/calendars/primary', { headers: { 'Authorization': 'Bearer ' + accessToken } })
-    .then(function(r) { if (r.ok) onAuthSuccess(); else { accessToken = null; localStorage.removeItem('gcal-access-token'); } })
-    .catch(function() { accessToken = null; localStorage.removeItem('gcal-access-token'); });
+async function updateEvent(eventId, data) {
+  const res = await gcalFetch(`${GCAL_BASE}/calendars/${encodeURIComponent(GCAL_CAL_ID)}/events/${eventId}`, { method: 'PATCH', body: JSON.stringify(data) });
+  return res.json();
+}
+
+async function deleteEvent(eventId) {
+  return gcalFetch(`${GCAL_BASE}/calendars/${encodeURIComponent(GCAL_CAL_ID)}/events/${eventId}`, { method: 'DELETE' });
+}
+
+async function getEvent(eventId) {
+  const res = await gcalFetch(`${GCAL_BASE}/calendars/${encodeURIComponent(GCAL_CAL_ID)}/events/${eventId}`);
+  return res.json();
+}
+
+/* ---- Recurring event delete helpers ---- */
+
+// Delete only this single instance
+async function deleteThisInstance(instanceId) {
+  return deleteEvent(instanceId);
+}
+
+// Delete this instance and all following: trim the parent RRULE
+async function deleteThisAndFollowing(instanceId) {
+  const instance = await getEvent(instanceId);
+  const parentId = instance.recurringEventId;
+  if (!parentId) return deleteEvent(instanceId); // fallback: not recurring
+
+  // Get parent event
+  const parent = await getEvent(parentId);
+  
+  // Calculate UNTIL = 1 second before this instance's original start
+  const instanceStart = new Date(instance.originalStartTime?.dateTime || instance.start?.dateTime);
+  const untilDate = new Date(instanceStart.getTime() - 1000);
+  const untilStr = untilDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '').replace('Z', 'Z');
+  
+  // Update parent recurrence with UNTIL
+  let recurrence = parent.recurrence || [];
+  recurrence = recurrence.map(rule => {
+    if (rule.startsWith('RRULE:')) {
+      // Remove existing UNTIL or COUNT
+      let parts = rule.replace(/;UNTIL=[^;]*/i, '').replace(/;COUNT=[^;]*/i, '');
+      return parts + ';UNTIL=' + untilStr;
+    }
+    return rule;
+  });
+  
+  return updateEvent(parentId, { recurrence });
+}
+
+// Delete ALL instances of the recurring series
+async function deleteAllInstances(instanceId) {
+  const instance = await getEvent(instanceId);
+  const parentId = instance.recurringEventId || instanceId;
+  return deleteEvent(parentId);
+}
+
+/* ---- UI: Delete modal for recurring events ---- */
+let _pendingDeleteId = null;
+
+async function openDeleteModal(eventId) {
+  _pendingDeleteId = eventId;
+  
+  // Check if this event is part of a recurring series
+  try {
+    const ev = await getEvent(eventId);
+    if (ev.recurringEventId) {
+      // Show recurring delete options
+      document.getElementById('recurring-delete-modal').classList.add('active');
+    } else {
+      // Single event: delete directly
+      if (confirm('Xóa buổi dạy này?')) {
+        await deleteEvent(eventId);
+        refreshAfterChange();
+      }
+    }
+  } catch (e) {
+    console.error('Error checking event:', e);
+    if (confirm('Xóa buổi dạy này?')) {
+      await deleteEvent(eventId);
+      refreshAfterChange();
+    }
   }
+}
 
-  function onAuthSuccess() {
-    var authBtn = document.getElementById('btn-gcal-auth');
-    var addBtn = document.getElementById('btn-add-event');
-    if (authBtn) authBtn.style.display = 'none';
-    if (addBtn) addBtn.style.display = 'inline-flex';
-    console.log('GCal OAuth: authenticated');
+function closeRecurringDeleteModal() {
+  document.getElementById('recurring-delete-modal').classList.remove('active');
+  _pendingDeleteId = null;
+}
+
+async function handleRecurringDelete(mode) {
+  if (!_pendingDeleteId) return;
+  const id = _pendingDeleteId;
+  closeRecurringDeleteModal();
+  
+  try {
+    switch (mode) {
+      case 'this':
+        await deleteThisInstance(id);
+        break;
+      case 'this-and-following':
+        await deleteThisAndFollowing(id);
+        break;
+      case 'all':
+        await deleteAllInstances(id);
+        break;
+    }
+    refreshAfterChange();
+  } catch (e) {
+    alert('Lỗi khi xóa: ' + e.message);
   }
+}
 
-  function getToken() { return accessToken; }
-  function isAuthed() { return !!accessToken; }
-
-  async function apiCall(url, method, body) {
-    if (!accessToken) { requestAccess(); return null; }
-    var opts = { method: method, headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    var res = await fetch(url, opts);
-    if (res.status === 401) { accessToken = null; localStorage.removeItem('gcal-access-token'); requestAccess(); return null; }
-    if (res.status === 204) return { success: true }; // DELETE returns 204
-    return await res.json();
-  }
-
-  async function createEvent(title, date, startTime, endTime, description) {
-    var body = {
-      summary: title, description: description || '',
-      start: { dateTime: date + 'T' + startTime + ':00', timeZone: 'Asia/Ho_Chi_Minh' },
-      end: { dateTime: date + 'T' + endTime + ':00', timeZone: 'Asia/Ho_Chi_Minh' }
-    };
-    return await apiCall('https://www.googleapis.com/calendar/v3/calendars/primary/events', 'POST', body);
-  }
-
-  async function updateEvent(eventId, title, date, startTime, endTime, description) {
-    var body = {
-      summary: title, description: description || '',
-      start: { dateTime: date + 'T' + startTime + ':00', timeZone: 'Asia/Ho_Chi_Minh' },
-      end: { dateTime: date + 'T' + endTime + ':00', timeZone: 'Asia/Ho_Chi_Minh' }
-    };
-    return await apiCall('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + eventId, 'PATCH', body);
-  }
-
-  async function deleteEvent(eventId) {
-    return await apiCall('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + eventId, 'DELETE', null);
-  }
-
-  async function getEvent(eventId) {
-    return await apiCall('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + eventId, 'GET', null);
-  }
-
-  setTimeout(init, 1500);
-  return { init: init, requestAccess: requestAccess, getToken: getToken, isAuthed: isAuthed, createEvent: createEvent, updateEvent: updateEvent, deleteEvent: deleteEvent, getEvent: getEvent };
-})();
-
-/* ===== UI Functions ===== */
-function handleGCalAuth() { GCalAuth.requestAccess(); }
+/* ---- Event modal (Add / Edit) ---- */
+let _editingEventId = null;
 
 function openAddEventModal() {
+  _editingEventId = null;
   document.getElementById('ev-modal-title').textContent = 'Thêm buổi dạy';
-  document.getElementById('ev-id').value = '';
-  document.getElementById('ev-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('ev-title').value = '';
+  document.getElementById('ev-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('ev-start').value = '08:00';
+  document.getElementById('ev-end').value = '09:00';
   document.getElementById('ev-note').value = '';
-  document.getElementById('ev-start').value = '19:00';
-  document.getElementById('ev-end').value = '20:00';
-  document.getElementById('ev-delete-btn').style.display = 'none';
-  document.getElementById('modal-event').hidden = false;
+  document.getElementById('ev-delete-btn').classList.add('hidden');
+  document.getElementById('event-modal').classList.add('active');
 }
 
-function openEditEventModal(eventId, title, date, startTime, endTime, note) {
-  if (!GCalAuth.isAuthed()) { GCalAuth.requestAccess(); return; }
+async function openEditEventModal(eventId) {
+  _editingEventId = eventId;
+  const ev = await getEvent(eventId);
   document.getElementById('ev-modal-title').textContent = 'Sửa buổi dạy';
-  document.getElementById('ev-id').value = eventId;
-  document.getElementById('ev-title').value = title || '';
-  document.getElementById('ev-date').value = date || '';
-  document.getElementById('ev-start').value = startTime || '19:00';
-  document.getElementById('ev-end').value = endTime || '20:00';
-  document.getElementById('ev-note').value = note || '';
-  document.getElementById('ev-delete-btn').style.display = 'inline-flex';
-  document.getElementById('modal-event').hidden = false;
+  document.getElementById('ev-title').value = ev.summary || '';
+  const start = new Date(ev.start?.dateTime || ev.start?.date);
+  const end = new Date(ev.end?.dateTime || ev.end?.date);
+  document.getElementById('ev-date').value = start.toISOString().slice(0, 10);
+  document.getElementById('ev-start').value = start.toTimeString().slice(0, 5);
+  document.getElementById('ev-end').value = end.toTimeString().slice(0, 5);
+  document.getElementById('ev-note').value = ev.description || '';
+  document.getElementById('ev-delete-btn').classList.remove('hidden');
+  document.getElementById('event-modal').classList.add('active');
 }
 
-function closeEventModal() { document.getElementById('modal-event').hidden = true; }
+function closeEventModal() {
+  document.getElementById('event-modal').classList.remove('active');
+  _editingEventId = null;
+}
 
-async function saveGCalEvent(e) {
-  e.preventDefault();
-  var eventId = document.getElementById('ev-id').value;
-  var title = document.getElementById('ev-title').value.trim();
-  var date = document.getElementById('ev-date').value;
-  var start = document.getElementById('ev-start').value;
-  var end = document.getElementById('ev-end').value;
-  var note = document.getElementById('ev-note').value.trim();
-  if (!title || !date || !start || !end) return alert('Điền đủ thông tin');
-
-  var result;
-  if (eventId) {
-    result = await GCalAuth.updateEvent(eventId, title, date, start, end, note);
-    if (result) alert('✅ Đã cập nhật: ' + title);
+async function saveGCalEvent() {
+  const title = document.getElementById('ev-title').value.trim();
+  const date = document.getElementById('ev-date').value;
+  const startT = document.getElementById('ev-start').value;
+  const endT = document.getElementById('ev-end').value;
+  const note = document.getElementById('ev-note').value.trim();
+  if (!title || !date || !startT || !endT) return alert('Vui lòng điền đủ thông tin');
+  
+  const startDT = `${date}T${startT}:00`;
+  const endDT = `${date}T${endT}:00`;
+  
+  if (_editingEventId) {
+    await updateEvent(_editingEventId, {
+      summary: title,
+      start: { dateTime: startDT, timeZone: 'Asia/Ho_Chi_Minh' },
+      end: { dateTime: endDT, timeZone: 'Asia/Ho_Chi_Minh' },
+      description: note
+    });
   } else {
-    result = await GCalAuth.createEvent(title, date, start, end, note);
-    if (result && result.id) alert('✅ Đã tạo: ' + title);
+    await createEvent(title, startDT, endDT, note);
   }
-
-  if (result) {
-    closeEventModal();
-    refreshAfterChange();
-  }
+  closeEventModal();
+  refreshAfterChange();
 }
 
 async function deleteGCalEvent() {
-  var eventId = document.getElementById('ev-id').value;
-  if (!eventId) return;
-  if (!confirm('Xóa buổi dạy này khỏi Google Calendar?')) return;
-  var result = await GCalAuth.deleteEvent(eventId);
-  if (result) {
-    alert('🗑️ Đã xóa');
-    closeEventModal();
-    refreshAfterChange();
-  }
+  if (!_editingEventId) return;
+  closeEventModal();
+  await openDeleteModal(_editingEventId);
 }
 
+/* ---- Refresh ---- */
 function refreshAfterChange() {
   // Reload iframe
-  var iframe = document.getElementById('gcal-iframe');
+  const iframe = document.querySelector('#page-schedule iframe');
   if (iframe) iframe.src = iframe.src;
-  // Reload data after short delay
-  setTimeout(function() {
-    if (typeof GCalSync !== 'undefined') GCalSync.fetchEvents(null, null, true);
-    setTimeout(function() {
-      if (typeof loadAllExternalData === 'function') loadAllExternalData();
-    }, 2000);
-  }, 1500);
+  // Re-sync data
+  if (window.loadAllExternalData) setTimeout(loadAllExternalData, 1500);
 }
 
-/* Click on session item to edit */
+/* ---- Session click handler ---- */
 function onSessionClick(eventId) {
-  if (!GCalAuth.isAuthed()) { GCalAuth.requestAccess(); return; }
-  var all = (typeof getAllSessions === 'function') ? getAllSessions() : [];
-  var session = all.find(function(s) { return s.id === eventId; });
-  if (!session) return;
-
-  var d = new Date(session.date);
-  var dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  var startTime = d.toTimeString().slice(0,5);
-  var endD = session.dateEnd ? new Date(session.dateEnd) : null;
-  var endTime = endD ? endD.toTimeString().slice(0,5) : '20:00';
-
-  openEditEventModal(eventId, session.name, dateStr, startTime, endTime, session.note || '');
+  if (eventId && eventId !== 'undefined') openEditEventModal(eventId);
 }
+
+/* ---- Auth button handler ---- */
+function handleGCalAuth() {
+  ensureToken().then(() => {
+    document.getElementById('gcal-auth-btn')?.classList.add('hidden');
+    document.getElementById('gcal-add-btn')?.classList.remove('hidden');
+  });
+}
+
+/* ---- Auto-login on page load ---- */
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    initTokenClient();
+    if (accessToken && Date.now() < tokenExpiry) {
+      document.getElementById('gcal-auth-btn')?.classList.add('hidden');
+      document.getElementById('gcal-add-btn')?.classList.remove('hidden');
+    } else if (accessToken) {
+      // Token expired but existed before: try silent refresh
+      ensureToken().then(() => {
+        document.getElementById('gcal-auth-btn')?.classList.add('hidden');
+        document.getElementById('gcal-add-btn')?.classList.remove('hidden');
+      }).catch(() => {});
+    }
+  }, 1000);
+});

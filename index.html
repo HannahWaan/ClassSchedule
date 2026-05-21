@@ -195,5 +195,18 @@
 <script src="js/students.js"></script>
 <script src="js/groups.js"></script>
 <script src="js/app.js"></script>
+<!-- MODAL: RECURRING DELETE -->
+<div class="modal-backdrop" id="recurring-delete-modal">
+  <div class="modal-box" style="max-width:380px">
+    <h3 style="margin-bottom:16px;font-size:1.1rem">Xóa sự kiện lặp lại</h3>
+    <p style="margin-bottom:20px;color:var(--text2);font-size:.9rem">Sự kiện này thuộc chuỗi lặp lại. Bạn muốn xóa như thế nào?</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-outline" onclick="handleRecurringDelete('this')">🗓️ Chỉ xóa sự kiện này</button>
+      <button class="btn btn-outline" onclick="handleRecurringDelete('this-and-following')">📅 Xóa sự kiện này và sau đó</button>
+      <button class="btn btn-danger" onclick="handleRecurringDelete('all')">🗑️ Xóa toàn bộ sự kiện lặp lại</button>
+      <button class="btn btn-ghost" onclick="closeRecurringDeleteModal()" style="margin-top:6px">Hủy</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
