@@ -1,6 +1,5 @@
 /* ===== STUDENTS.JS v3 – search/filter + fixed delete ===== */
 
-var addDeletedStudent(name);
   _pendingDeleteStudent = null;
 var _studentFilters = { search: '', group: '', day: '', feeType: '' };
 
@@ -301,7 +300,7 @@ function handleStudentDelete(mode) {
   var modal = document.getElementById('student-delete-modal');
   if (modal) modal.hidden = true;
 
-  if (mode === 'cancel') { addDeletedStudent(name);
+  if (mode === 'cancel') {
   _pendingDeleteStudent = null; return; }
 
   // Remove from local data
