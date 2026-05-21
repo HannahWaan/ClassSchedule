@@ -41,3 +41,16 @@
   .grid-4{grid-template-columns:1fr}
   .welcome-text h2{font-size:1rem}
 }
+
+/* Student grid responsive */
+@media(min-width:1400px){
+  .stu-grid{grid-template-columns:repeat(5,1fr)}
+}
+
+/* Filter bar mobile */
+@media(max-width:768px){
+  .stu-grid{grid-template-columns:repeat(2,1fr)}
+  .stu-filter-bar{flex-direction:column;gap:6px}
+  .stu-search-wrap{min-width:100%}
+  .stu-filter-select{width:100%}
+}

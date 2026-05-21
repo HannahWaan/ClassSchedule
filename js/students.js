@@ -1,4 +1,7 @@
-/* ===== STUDENTS.JS v2 ===== */
+/* ===== STUDENTS.JS v3 – search/filter + fixed delete ===== */
+
+var _pendingDeleteStudent = null;
+var _studentFilters = { search: '', group: '', day: '', feeType: '' };
 
 function getStudentData() {
   try { return JSON.parse(localStorage.getItem('cs-students-v2') || '[]'); } catch(e) { return []; }
@@ -41,19 +44,122 @@ function getAllStudents() {
   return result;
 }
 
+/* ===== FILTER TOOLBAR ===== */
+function buildStudentToolbar() {
+  var groups = (typeof getGroups === 'function') ? getGroups() : [];
+  var dayNames = ['CN','T2','T3','T4','T5','T6','T7'];
+
+  var html = '<div class="stu-filter-bar">';
+  // Search
+  html += '<div class="stu-search-wrap"><input type="text" id="stu-search" class="stu-search" placeholder="Tìm học viên..." oninput="onStudentFilterChange()"></div>';
+  // Group filter
+  html += '<select id="stu-filter-group" class="stu-filter-select" onchange="onStudentFilterChange()">';
+  html += '<option value="">Tất cả nhóm</option>';
+  html += '<option value="__none__">Không có nhóm</option>';
+  groups.forEach(function(g) { html += '<option value="' + g.name + '">' + g.name + '</option>'; });
+  html += '</select>';
+  // Day filter
+  html += '<select id="stu-filter-day" class="stu-filter-select" onchange="onStudentFilterChange()">';
+  html += '<option value="">Tất cả thứ</option>';
+  for (var i = 1; i <= 6; i++) { html += '<option value="' + i + '">' + dayNames[i] + '</option>'; }
+  html += '<option value="0">CN</option>';
+  html += '</select>';
+  // Fee type filter
+  html += '<select id="stu-filter-fee" class="stu-filter-select" onchange="onStudentFilterChange()">';
+  html += '<option value="">Tất cả hình thức</option>';
+  html += '<option value="per-session">Theo buổi</option>';
+  html += '<option value="per-month">Theo tháng</option>';
+  html += '<option value="free-session">Tự do/buổi</option>';
+  html += '<option value="free-month">Tự do/tháng</option>';
+  html += '</select>';
+  html += '</div>';
+  return html;
+}
+
+function onStudentFilterChange() {
+  var searchEl = document.getElementById('stu-search');
+  var groupEl = document.getElementById('stu-filter-group');
+  var dayEl = document.getElementById('stu-filter-day');
+  var feeEl = document.getElementById('stu-filter-fee');
+  _studentFilters.search = searchEl ? searchEl.value.toLowerCase().trim() : '';
+  _studentFilters.group = groupEl ? groupEl.value : '';
+  _studentFilters.day = dayEl ? dayEl.value : '';
+  _studentFilters.feeType = feeEl ? feeEl.value : '';
+  renderStudentList();
+}
+
+function applyStudentFilters(students) {
+  var f = _studentFilters;
+  return students.filter(function(st) {
+    // Search by name
+    if (f.search && st.name.toLowerCase().indexOf(f.search) === -1) return false;
+    // Filter by group
+    if (f.group === '__none__' && st.group) return false;
+    if (f.group && f.group !== '__none__' && st.group !== f.group) return false;
+    // Filter by day
+    if (f.day !== '') {
+      var dayNum = parseInt(f.day);
+      var hasDay = false;
+      if (st.schedules && st.schedules.length > 0) {
+        st.schedules.forEach(function(sc) {
+          if (sc.days && sc.days.indexOf(dayNum) !== -1) hasDay = true;
+        });
+      }
+      if (!hasDay) return false;
+    }
+    // Filter by fee type
+    if (f.feeType && st.feeType !== f.feeType) return false;
+    return true;
+  });
+}
+
+/* ===== RENDER ===== */
 function renderStudents() {
   var root = document.getElementById('students-root');
   var countEl = document.getElementById('student-count');
   if (!root) return;
 
   var students = getAllStudents();
-  var groups = (typeof getGroups === 'function') ? getGroups() : [];
   var active = students.filter(function(s) { return !s.completed; });
   var completed = students.filter(function(s) { return s.completed; });
 
   if (countEl) countEl.textContent = active.length + ' đang học' + (completed.length > 0 ? ' · ' + completed.length + ' đã xong' : '');
 
-  if (students.length === 0) { root.innerHTML = '<p class="muted">Chưa có học viên.</p>'; return; }
+  // Build toolbar + list container
+  var html = buildStudentToolbar();
+  html += '<div id="stu-list-container"></div>';
+  root.innerHTML = html;
+
+  // Restore filter values
+  var searchEl = document.getElementById('stu-search');
+  var groupEl = document.getElementById('stu-filter-group');
+  var dayEl = document.getElementById('stu-filter-day');
+  var feeEl = document.getElementById('stu-filter-fee');
+  if (searchEl) searchEl.value = _studentFilters.search;
+  if (groupEl) groupEl.value = _studentFilters.group;
+  if (dayEl) dayEl.value = _studentFilters.day;
+  if (feeEl) feeEl.value = _studentFilters.feeType;
+
+  renderStudentList();
+}
+
+function renderStudentList() {
+  var container = document.getElementById('stu-list-container');
+  if (!container) return;
+
+  var students = getAllStudents();
+  var groups = (typeof getGroups === 'function') ? getGroups() : [];
+  var active = students.filter(function(s) { return !s.completed; });
+  var completed = students.filter(function(s) { return s.completed; });
+
+  // Apply filters
+  active = applyStudentFilters(active);
+  completed = applyStudentFilters(completed);
+
+  if (active.length === 0 && completed.length === 0) {
+    container.innerHTML = '<p class="muted" style="margin-top:12px">Không tìm thấy học viên.</p>';
+    return;
+  }
 
   // Separate: grouped vs ungrouped
   var grouped = {}, ungrouped = [];
@@ -66,7 +172,7 @@ function renderStudents() {
 
   var html = '';
 
-  // Render grouped (collapsed card per group)
+  // Render grouped
   Object.keys(grouped).forEach(function(gName) {
     var members = grouped[gName];
     var g = groups.find(function(gr) { return gr.name === gName; });
@@ -75,13 +181,17 @@ function renderStudents() {
     html += '<div class="group-collapse-header" onclick="toggleGroupCollapse(this)">';
     html += '<span>👥 ' + gName + ' <span class="muted">(' + members.length + ' HV' + (gFee ? ' · ' + gFee : '') + ')</span></span>';
     html += '<span class="group-collapse-arrow">▸</span></div>';
-    html += '<div class="group-collapse-body" style="display:none">';
+    html += '<div class="group-collapse-body" style="display:none"><div class="stu-grid">';
     members.forEach(function(st) { html += buildStudentCard(st); });
-    html += '</div></div>';
+    html += '</div></div></div>';
   });
 
   // Render ungrouped
-  ungrouped.forEach(function(st) { html += buildStudentCard(st); });
+  if (ungrouped.length > 0) {
+    html += '<div class="stu-grid">';
+    ungrouped.forEach(function(st) { html += buildStudentCard(st); });
+    html += '</div>';
+  }
 
   // Completed
   if (completed.length > 0) {
@@ -90,7 +200,7 @@ function renderStudents() {
     html += '</div></div>';
   }
 
-  root.innerHTML = html;
+  container.innerHTML = html;
 }
 
 function buildStudentCard(st) {
@@ -119,7 +229,7 @@ function buildStudentCard(st) {
 
 function formatSchedules(st) {
   var dayNames = ['CN','T2','T3','T4','T5','T6','T7'];
-  var repeatLabels = {'weekly':'mỗi tuần','daily':'mỗi ngày','biweekly':'2 tuần/lần','monthly':'1 tháng/lần'};
+  var repeatLabels = {'weekly':'mỗi tuần','daily':'mỗi ngày','biweekly':'2 tuần/lần','monthly':'1 tháng/lần','none':''};
   var parts = [];
   if (st.schedules) {
     st.schedules.forEach(function(sc) {
@@ -169,7 +279,61 @@ function toggleStudentDone(key, checked) {
   renderStudents();
 }
 
-/* MODAL */
+/* ===== DELETE STUDENT ===== */
+function deleteStudent(key) {
+  var name = decodeKey(key);
+  _pendingDeleteStudent = name;
+  var modal = document.getElementById('student-delete-modal');
+  var nameEl = document.getElementById('sdm-name');
+  if (nameEl) nameEl.textContent = name;
+  if (modal) modal.hidden = false;
+}
+
+function handleStudentDelete(mode) {
+  if (!_pendingDeleteStudent) return;
+  var name = _pendingDeleteStudent;
+  var modal = document.getElementById('student-delete-modal');
+  if (modal) modal.hidden = true;
+
+  if (mode === 'cancel') { _pendingDeleteStudent = null; return; }
+
+  // Remove from local data
+  var data = getStudentData();
+  data = data.filter(function(s) { return s.name !== name; });
+  saveStudentData(data);
+
+  // mode=gcal: also delete GCal events
+  if (mode === 'gcal') {
+    if (typeof deleteEvent === 'function' && typeof isTokenValid === 'function' && isTokenValid()) {
+      var sessions = (typeof getAllSessions === 'function') ? getAllSessions() : [];
+      sessions = sessions.filter(function(s) { return s.student === name && s.source === 'gcal'; });
+      var deleted = {};
+      sessions.forEach(function(s) {
+        var delId = s.recurringEventId || s.id;
+        if (!deleted[delId]) { deleted[delId] = true; deleteEvent(delId).catch(function(){}); }
+      });
+      setTimeout(function() { if (typeof refreshAfterChange === 'function') refreshAfterChange(); }, 1200);
+    } else {
+      alert('Cần đăng nhập Google trước khi xóa trên Calendar.');
+    }
+  }
+
+  // mode=hide: hide events locally
+  if (mode === 'hide') {
+    if (typeof hideEventLocally === 'function') {
+      var sessions2 = (typeof getAllSessions === 'function') ? getAllSessions() : [];
+      sessions2 = sessions2.filter(function(s) { return s.student === name; });
+      sessions2.forEach(function(s) { hideEventLocally(s.id); });
+    }
+  }
+
+  _pendingDeleteStudent = null;
+  renderStudents();
+  if (typeof updateDashboard === 'function') updateDashboard();
+  if (typeof updateStats === 'function') updateStats();
+}
+
+/* ===== MODAL ===== */
 function openAddStudentModal() {
   document.getElementById('student-modal-title').textContent = 'Thêm học viên';
   document.getElementById('sf-id').value = '';
@@ -251,8 +415,8 @@ function onFeeTypeChange() {
   var type = document.getElementById('sf-fee-type').value;
   var schedSection = document.getElementById('sf-schedule-section');
   var feeLabel = document.getElementById('sf-fee-label');
-  schedSection.style.display = (type === 'per-session' || type === 'per-month') ? 'block' : 'none';
-  feeLabel.textContent = type.includes('month') ? 'Học phí / tháng (VNĐ)' : 'Học phí / buổi (VNĐ)';
+  if (schedSection) schedSection.style.display = (type === 'per-session' || type === 'per-month') ? 'block' : 'none';
+  if (feeLabel) feeLabel.textContent = type.includes('month') ? 'Học phí / tháng (VNĐ)' : 'Học phí / buổi (VNĐ)';
 }
 
 function saveStudent(e) {
@@ -269,8 +433,8 @@ function saveStudent(e) {
 
   var schedules = [];
   document.querySelectorAll('.schedule-row').forEach(function(row) {
-    var start = row.querySelector('.sc-start')?.value || '';
-    var end = row.querySelector('.sc-end')?.value || '';
+    var start = row.querySelector('.sc-start') ? row.querySelector('.sc-start').value : '';
+    var end = row.querySelector('.sc-end') ? row.querySelector('.sc-end').value : '';
     var days = [];
     row.querySelectorAll('.sc-days input:checked').forEach(function(cb) { days.push(parseInt(cb.value)); });
     if (start && end) schedules.push({ start:start, end:end, days:days });
@@ -289,8 +453,8 @@ function saveStudent(e) {
     data.push({id:'manual-'+Date.now(), name:name, feeType:feeType, fee:fee, schedules:schedules, repeat:repeat, note:note, completed:false, group:group});
   }
 
-  // Also add to group's members if selected
-  if (group && typeof getGroups === 'function') {
+  // Also add to group if selected
+  if (group && typeof getGroups === 'function' && typeof saveGroups === 'function') {
     var groups = getGroups();
     var g = groups.find(function(gr) { return gr.name === group; });
     if (g && g.members.indexOf(name) === -1) {
@@ -306,13 +470,7 @@ function saveStudent(e) {
   if (typeof updateStats === 'function') updateStats();
 }
 
-
-/* ---- Delete student with options ---- */
-var _pendingDeleteStudent = null;
-
-
-
-
+/* ===== DETAIL PANEL ===== */
 function showStudentDetail(key) {
   var name = decodeKey(key);
   var students = getAllStudents();
@@ -324,7 +482,7 @@ function showStudentDetail(key) {
   var done = st.doneSessions.sort(function(a,b) { return new Date(b.date)-new Date(a.date); });
 
   var html = '<h3>' + st.name + '</h3>';
-  html += '<div style="margin:12px 0;font-size:.85rem;display:flex;flex-direction:column;gap:4px">';
+  html += '<div style="margin:12px 0;font-size:.82rem;display:flex;flex-direction:column;gap:4px">';
   html += '<span>📋 ' + (feeLabels[st.feeType]||'') + '</span>';
   html += '<span>💰 ' + (st.fee > 0 ? formatVND(st.fee) : 'Chưa set') + '</span>';
   html += '<span>📚 ' + st.doneSessions.length + '/' + st.sessions.length + ' buổi</span>';
@@ -337,70 +495,22 @@ function showStudentDetail(key) {
   html += '</div>';
 
   if (upcoming.length > 0) {
-    html += '<h4 style="color:var(--accent);margin-bottom:6px">Sắp tới</h4>';
+    html += '<h4 style="margin:12px 0 6px;font-size:.82rem;color:var(--accent)">Sắp tới</h4>';
     upcoming.slice(0,8).forEach(function(s) {
       var d = new Date(s.date);
       html += '<div class="s-item"><div class="s-item-info"><strong>' + s.name + '</strong><span>' + d.toLocaleDateString('vi-VN',{weekday:'short',day:'numeric',month:'numeric'}) + ' ' + d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}) + '</span></div></div>';
     });
   }
   if (done.length > 0) {
-    html += '<h4 style="color:var(--text3);margin:12px 0 6px">Lịch sử</h4>';
+    html += '<h4 style="margin:12px 0 6px;font-size:.82rem;color:var(--text3)">Lịch sử</h4>';
     done.slice(0,10).forEach(function(s) {
       var d = new Date(s.date);
-      html += '<div class="s-item" style="opacity:0.7;border-left-color:var(--success)"><div class="s-item-info"><strong>' + s.name + '</strong><span>' + d.toLocaleDateString('vi-VN',{day:'numeric',month:'numeric'}) + ' · ' + formatVND(s.fee||0) + '</span></div></div>';
+      html += '<div class="s-item" style="opacity:0.6;border-left-color:var(--success)"><div class="s-item-info"><strong>' + s.name + '</strong><span>' + d.toLocaleDateString('vi-VN',{day:'numeric',month:'numeric'}) + ' · ' + formatVND(s.fee||0) + '</span></div></div>';
     });
   }
 
   document.getElementById('rp-body').innerHTML = html;
-  openRightPanel();
-}
-
-/* ---- Delete student with options ---- */
-var _pendingDeleteStudent = null;
-
-function deleteStudent(key) {
-  var name = decodeKey(key);
-  _pendingDeleteStudent = name;
-  var modal = document.getElementById("student-delete-modal");
-  var nameEl = document.getElementById("sdm-name");
-  if (nameEl) nameEl.textContent = name;
-  if (modal) modal.hidden = false;
-}
-
-function handleStudentDelete(mode) {
-  if (!_pendingDeleteStudent) return;
-  var name = _pendingDeleteStudent;
-  var modal = document.getElementById("student-delete-modal");
-  if (modal) modal.hidden = true;
-
-  if (mode === "cancel") { _pendingDeleteStudent = null; return; }
-
-  /* Remove from local data */
-  var data = getStudentData();
-  data = data.filter(function(s) { return s.name !== name; });
-  saveStudentData(data);
-
-  /* mode=gcal: also delete GCal events */
-  if (mode === "gcal" && typeof deleteEvent === "function" && isTokenValid()) {
-    var sessions = getAllSessions().filter(function(s) { return s.student === name && s.source === "gcal"; });
-    var deleted = {};
-    sessions.forEach(function(s) {
-      var delId = s.recurringEventId || s.id;
-      if (!deleted[delId]) { deleted[delId] = true; deleteEvent(delId).catch(function(){}); }
-    });
-    setTimeout(function() { if (typeof refreshAfterChange === "function") refreshAfterChange(); }, 1000);
-  }
-
-  /* mode=hide: hide events locally */
-  if (mode === "hide" && typeof hideEventLocally === "function") {
-    var sessions2 = getAllSessions().filter(function(s) { return s.student === name; });
-    sessions2.forEach(function(s) { hideEventLocally(s.id); });
-  }
-
-  _pendingDeleteStudent = null;
-  renderStudents();
-  if (typeof updateDashboard === "function") updateDashboard();
-  if (typeof updateStats === "function") updateStats();
+  if (typeof openRightPanel === 'function') openRightPanel();
 }
 
 function getActiveStudentNames() {

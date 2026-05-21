@@ -12,20 +12,30 @@
 .welcome-text h2{font-size:1.4rem;font-weight:700;margin-bottom:6px;letter-spacing:-.02em}
 .welcome-text p{color:var(--text2);margin-bottom:14px;font-size:.85rem}
 
-/* STUDENTS */
+/* STUDENTS - GRID CARDS */
+.stu-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+  gap:12px;
+  margin-bottom:16px;
+}
 .stu-card{
-  display:flex;justify-content:space-between;align-items:flex-start;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius);padding:16px;margin-bottom:10px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
   transition:border-color .12s;
+  min-height:160px;
 }
 .stu-card:hover{border-color:var(--border-strong)}
-.stu-card.completed{opacity:.45}
+.stu-card.completed{opacity:.4}
 .stu-info{flex:1;min-width:0}
-.stu-info h4{margin-bottom:4px;font-weight:600;font-size:.88rem}
-.stu-info p{font-size:.78rem;color:var(--text2);margin-bottom:2px;line-height:1.4}
-.stu-rate{color:var(--accent)!important;font-weight:500}
-.stu-actions{display:flex;flex-direction:column;gap:4px;align-items:flex-end;margin-left:10px}
+.stu-info h4{margin-bottom:5px;font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stu-info p{font-size:.78rem;color:var(--text2);margin-bottom:3px;line-height:1.4}
+.stu-actions{display:flex;gap:4px;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)}
 
 /* GROUP COLLAPSE */
 .group-collapse-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
@@ -108,3 +118,39 @@
 
 /* Section desc */
 .section-desc{color:var(--text3);font-size:.78rem;margin-bottom:14px}
+
+/* STUDENT FILTER BAR */
+.stu-filter-bar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:16px;
+  align-items:center;
+}
+.stu-search-wrap{flex:1;min-width:180px}
+.stu-search{
+  width:100%;
+  padding:8px 12px;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:var(--radius-xs);
+  color:var(--text);
+  font-size:.82rem;
+  font-family:var(--font);
+  transition:border .15s;
+}
+.stu-search:focus{outline:none;border-color:var(--accent)}
+.stu-search::placeholder{color:var(--text3)}
+.stu-filter-select{
+  padding:8px 10px;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:var(--radius-xs);
+  color:var(--text2);
+  font-size:.78rem;
+  font-family:var(--font);
+  cursor:pointer;
+  transition:border .15s;
+  min-width:120px;
+}
+.stu-filter-select:focus{outline:none;border-color:var(--accent)}
