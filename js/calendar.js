@@ -186,3 +186,27 @@ var miniCalDate=new Date();
 function renderMiniCal(){var el=document.getElementById('mini-cal');var y=miniCalDate.getFullYear(),m=miniCalDate.getMonth();var first=new Date(y,m,1),last=new Date(y,m+1,0);var sd=(first.getDay()+6)%7;var days=['T2','T3','T4','T5','T6','T7','CN'];var eventDates={};Store.sessions.forEach(function(s){eventDates[s.date]=true;});var h='<div class="mini-cal-header"><button onclick="miniCalNav(-1)">‹</button><span>Thg '+(m+1)+' '+y+'</span><button onclick="miniCalNav(1)">›</button></div><div class="mini-cal-grid">';days.forEach(function(d){h+='<div class="mc-hdr">'+d+'</div>';});for(var i=0;i<sd;i++)h+='<div class="mc-day other"></div>';for(var day=1;day<=last.getDate();day++){var dt=new Date(y,m,day);var ds=fmtISO(dt);var cls='mc-day';if(isSameDay(dt,new Date()))cls+=' today';if(eventDates[ds])cls+=' has-event';h+='<div class="'+cls+'" onclick="miniCalClick(\''+ds+'\')">'+day+'</div>';}h+='</div>';el.innerHTML=h;}
 function miniCalNav(dir){miniCalDate.setMonth(miniCalDate.getMonth()+dir);renderMiniCal();}
 function miniCalClick(ds){calDate=new Date(ds+'T00:00:00');calView='day';document.querySelectorAll('.vtab[data-view]').forEach(function(x){x.classList.remove('active');});var btn=document.querySelector('.vtab[data-view="day"]');if(btn)btn.classList.add('active');renderCalendar();}
+
+/* ===== GOOGLE CALENDAR EMBED TAB ===== */
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.vtab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const view = this.dataset.view;
+      const calRoot = document.getElementById('calendar-root');
+      const gcalEmbed = document.getElementById('gcal-embed');
+      if (view === 'gcal') {
+        if (calRoot) calRoot.style.display = 'none';
+        if (gcalEmbed) {
+          gcalEmbed.style.display = 'block';
+          const iframe = document.getElementById('gcal-iframe');
+          if (iframe && (!iframe.src || iframe.src === '' || iframe.src === window.location.href)) {
+            iframe.src = 'https://calendar.google.com/calendar/embed?src=asstrayca%40gmail.com&ctz=Asia%2FHo_Chi_Minh&mode=WEEK&showTitle=0&showNav=1&showPrint=0&showTabs=1&showCalendars=0';
+          }
+        }
+      } else {
+        if (gcalEmbed) gcalEmbed.style.display = 'none';
+        if (calRoot) calRoot.style.display = 'block';
+      }
+    });
+  });
+});

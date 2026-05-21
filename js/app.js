@@ -45,70 +45,70 @@ document.addEventListener('DOMContentLoaded',async function(){
 });
 
 
-/* ===== NOTION DATA INTEGRATION ===== */
+
+/* ===== GOOGLE CALENDAR + NOTION INTEGRATION ===== */
+let gcalEvents = [];
 let notionSessions = [];
 
-async function loadNotionData() {
+async function loadAllExternalData() {
   try {
-    notionSessions = await NotionSync.fetchAll();
-    updateDashboardWithNotion();
-    if (typeof syncUI === 'function') syncUI('Notion synced');
+    const [gcal, notion] = await Promise.allSettled([
+      GCalSync.fetchEvents(),
+      (typeof NotionSync !== 'undefined') ? NotionSync.fetchAll() : Promise.resolve([])
+    ]);
+    if (gcal.status === 'fulfilled') gcalEvents = gcal.value;
+    if (notion.status === 'fulfilled') notionSessions = notion.value;
+    updateDashboard();
+    if (typeof syncUI === 'function') syncUI('Synced');
   } catch (e) {
-    console.warn('Notion load failed:', e);
-    if (typeof syncUI === 'function') syncUI('Notion offline');
+    console.warn('External data load failed:', e);
   }
 }
 
-function getMergedSessions() {
+function getAllSessions() {
   const localMapped = (Store.sessions || []).map(s => ({
     id: s.id, name: s.student_name || s.group_name || '',
     date: s.date + 'T' + (s.start_time || '00:00'),
     dateEnd: s.date + 'T' + (s.end_time || '00:00'),
     student: s.student_name || '', fee: s.fee || 0,
     duration: (typeof timeDiffMinutes === 'function') ? timeDiffMinutes(s.start_time, s.end_time) : 0,
-    status: s.done ? 'Done' : 'Not started',
-    type: s.type || 'individual', color: s.color || 'c1',
-    note: s.note || '', source: 'local'
+    status: s.done ? 'Done' : 'Not started', type: s.type || 'individual',
+    color: s.color || 'c1', note: s.note || '', source: 'local'
   }));
-  const all = [...localMapped, ...notionSessions];
-  const map = new Map();
-  all.forEach(s => map.set(s.id, s));
+  const all = [...localMapped, ...gcalEvents, ...notionSessions];
+  const map = new Map(); all.forEach(s => map.set(s.id, s));
   return [...map.values()];
 }
 
-function updateDashboardWithNotion() {
-  const all = getMergedSessions();
-  const revenue = NotionSync.calcRevenue(all, 'month');
-  const minutes = NotionSync.calcMinutes(all, 'month');
+function updateDashboard() {
+  const all = getAllSessions();
+  const revenue = GCalSync.calcRevenue(all, 'month');
+  const minutes = GCalSync.calcMinutes(all, 'month');
   const hours = Math.floor(minutes / 60);
-  const students = NotionSync.uniqueStudents(all).length;
-  const weekSessions = NotionSync.countSessions(all, 'week');
-  const upcomingList = NotionSync.upcoming(all, 5);
+  const students = GCalSync.uniqueStudents(all).length;
+  const weekSessions = GCalSync.countSessions(all, 'week');
+  const upcomingList = GCalSync.upcoming(all, 5);
 
-  // Cap nhat cac element co san trong welcome page
   const el = (id) => document.getElementById(id);
   if (el('w-students')) el('w-students').textContent = students;
   if (el('w-week')) el('w-week').textContent = weekSessions;
-  if (el('w-salary')) el('w-salary').textContent = (revenue / 1000) + 'k';
+  if (el('w-salary')) el('w-salary').textContent = Math.round(revenue / 1000) + 'k';
   if (el('w-hours')) el('w-hours').textContent = hours + 'h';
 
-  // Cap nhat upcoming list
   if (el('upcoming-list')) {
     if (upcomingList.length === 0) {
-      el('upcoming-list').innerHTML = '<p class="muted">Khong co buoi day sap toi.</p>';
+      el('upcoming-list').innerHTML = '<p class="muted">Không có buổi dạy sắp tới.</p>';
     } else {
       el('upcoming-list').innerHTML = upcomingList.map(s => {
         const d = new Date(s.date);
         const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
         const date = d.toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'numeric' });
-        const fee = (s.fee / 1000) + 'k';
+        const fee = Math.round((s.fee || 0) / 1000) + 'k';
         return '<div class="upcoming-item"><span class="upcoming-time">' + date + ' ' + time + '</span><span class="upcoming-name">' + (s.name || s.student) + '</span><span class="upcoming-fee">' + fee + '</span></div>';
       }).join('');
     }
   }
 }
 
-// Load Notion data sau khi app khoi dong
-setTimeout(loadNotionData, 1000);
-// Auto refresh moi 2 phut
-setInterval(function() { loadNotionData(); }, 120000);
+setTimeout(loadAllExternalData, 800);
+setInterval(loadAllExternalData, 120000);
