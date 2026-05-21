@@ -50,6 +50,7 @@
                     <div class="toolbar">
                         <button class="btn btn-primary" id="btn-gcal-auth" onclick="handleGCalAuth()">🔐 Đăng nhập Google</button>
                         <button class="btn btn-primary" id="btn-add-event" onclick="openAddEventModal()" style="display:none">➕ Thêm buổi dạy</button>
+                        <button class="btn btn-outline" onclick="reloadCalendar()">🔄 Reload</button>
                         <a href="https://calendar.google.com" target="_blank" class="btn btn-outline">🔗 Mở Google Calendar</a>
                     </div>
                     <div class="gcal-fullscreen"><iframe id="gcal-iframe" src="https://calendar.google.com/calendar/embed?src=asstrayca%40gmail.com&ctz=Asia%2FHo_Chi_Minh&mode=WEEK&showTitle=0&showNav=1&showPrint=0&showTabs=1&showCalendars=0" style="width:100%;height:100%;border:none;"></iframe></div>
@@ -210,6 +211,18 @@
       <button class="btn btn-danger" onclick="handleSingleDelete('gcal')">🗑️ Xoa tren Google Calendar</button>
       <button class="btn btn-outline" onclick="handleSingleDelete('hide')">👁️‍🗨️ Chi an khoi ClassSchedule</button>
       <button class="btn btn-ghost" onclick="closeSingleDeleteModal()" style="margin-top:4px">Huy</button>
+    </div>
+</div></div>
+<!-- MODAL: DELETE STUDENT -->
+<div class="modal-backdrop" id="student-delete-modal" hidden>
+<div class="modal-box" style="max-width:420px">
+    <div class="modal-top"><h3>Xoa hoc vien</h3><button class="modal-x" onclick="handleStudentDelete('cancel')">✕</button></div>
+    <p style="margin:8px 0 16px;color:var(--text2);font-size:.9rem">Xoa <strong id="sdm-name"></strong>. Ban muon xoa nhu the nao?</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-danger" onclick="handleStudentDelete('gcal')">🗑️ Xoa ca tren Google Calendar</button>
+      <button class="btn btn-outline" onclick="handleStudentDelete('hide')">👁️‍🗨️ Chi an khoi ClassSchedule (giu lai tren GCal)</button>
+      <button class="btn btn-outline" onclick="handleStudentDelete('local')">📋 Chi xoa du lieu hoc vien (giu su kien)</button>
+      <button class="btn btn-ghost" onclick="handleStudentDelete('cancel')" style="margin-top:4px">Huy</button>
     </div>
 </div></div>
 <!-- SCRIPTS -->

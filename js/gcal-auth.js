@@ -278,6 +278,18 @@ function handleGCalAuth() {
   }).catch(function(e) { console.error('Auth failed:', e); });
 }
 
+
+/* ---- Reload Calendar ---- */
+function reloadCalendar() {
+  var iframe = document.getElementById('gcal-iframe');
+  if (iframe) {
+    var src = iframe.src;
+    iframe.src = '';
+    setTimeout(function() { iframe.src = src; }, 200);
+  }
+  if (typeof loadAllExternalData === 'function') loadAllExternalData();
+}
+
 /* ---- Auto-login: wait for GIS to load ---- */
 document.addEventListener('DOMContentLoaded', function() {
   function waitForGIS(attempts) {
