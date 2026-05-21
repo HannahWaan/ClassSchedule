@@ -1,51 +1,96 @@
-function renderWelcome(){
-    var now=new Date();document.getElementById('w-students').textContent=Store.students.length;
-    var ws=getWeekStart(now);var we=new Date(ws);we.setDate(we.getDate()+7);
-    var wk=Store.sessions.filter(function(s){var d=new Date(s.date);return d>=ws&&d<we;});
-    document.getElementById('w-week').textContent=wk.length;
-    document.getElementById('w-salary').textContent=formatMoney(Store.sessions.reduce(function(a,s){return a+(Number(s.fee)||0);},0));
-    var mo=Store.sessions.filter(function(s){var d=new Date(s.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
-    var hrs=0;mo.forEach(function(s){if(s.start_time&&s.end_time)hrs+=timeDiff(s.start_time,s.end_time);});
-    document.getElementById('w-hours').textContent=hrs.toFixed(1)+'h';
-    var up=Store.sessions.filter(function(s){return new Date(s.date+'T'+s.start_time)>=new Date(now.getTime()-86400000);}).sort(function(a,b){return(a.date+a.start_time).localeCompare(b.date+b.start_time);}).slice(0,5);
-    var el=document.getElementById('upcoming-list');
-    if(!up.length)el.innerHTML='<p class="muted">Chưa có buổi dạy nào.</p>';
-    else el.innerHTML=up.map(function(s){var icon=s.session_type==='group'?'👥':'👤';return'<div class="s-item"><div class="s-item-info"><strong>'+icon+' '+s.lesson+'</strong><span>'+(s.student_name||s.group_name||'')+' · '+fmtDate(s.date)+' · '+s.start_time.slice(0,5)+'–'+s.end_time.slice(0,5)+'</span></div></div>';}).join('');
-    document.getElementById('welcome-name').textContent=Store.profile.full_name||'Giáo viên';
-    document.getElementById('profile-display-name').textContent=Store.profile.full_name||'Giáo viên';
+/* ===== APP.JS - Main initialization ===== */
+
+function renderWelcome() {
+  const el = (id) => document.getElementById(id);
+  if (el('welcome-name')) el('welcome-name').textContent = Store.profile.full_name || 'Giáo viên';
+  if (el('profile-display-name')) el('profile-display-name').textContent = Store.profile.full_name || 'Giáo viên';
 }
-document.addEventListener('DOMContentLoaded',async function(){
-    syncUI('🔄 Loading...');await Store.load();
-    setTheme(Store.profile.theme||'dark');setFont(Store.profile.font||"'Be Vietnam Pro',sans-serif");
-    document.getElementById('p-font').value=Store.profile.font||"'Be Vietnam Pro',sans-serif";
-    document.getElementById('p-name').value=Store.profile.full_name||'';
-    document.getElementById('f-date').valueAsDate=new Date();
-    renderWelcome();renderStudents();renderGroups();populateDropdown();populateGroupDropdown();renderCalendar();
-    closeRightPanel();syncUI('✅ Synced');
 
-    document.querySelectorAll('.menu-item').forEach(function(m){m.addEventListener('click',function(e){e.preventDefault();switchTab(m.dataset.tab);});});
-    document.querySelectorAll('.vtab[data-view]').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.vtab[data-view]').forEach(function(x){x.classList.remove('active');});b.classList.add('active');calView=b.dataset.view;renderCalendar();});});
-    document.querySelectorAll('.vtab[data-period]').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.vtab[data-period]').forEach(function(x){x.classList.remove('active');});b.classList.add('active');renderStats(b.dataset.period);});});
-    document.getElementById('nav-prev').addEventListener('click',function(){navCal(-1);});
-    document.getElementById('nav-next').addEventListener('click',function(){navCal(1);});
-    document.getElementById('nav-today').addEventListener('click',function(){calDate=new Date();renderCalendar();});
+document.addEventListener('DOMContentLoaded', async function() {
+  syncUI('🔄 Loading...');
+  await Store.load();
 
-    document.getElementById('session-form').addEventListener('submit',saveSession);
-    document.getElementById('student-form').addEventListener('submit',saveStudent);
-    document.getElementById('group-form').addEventListener('submit',saveGroup);
-    document.getElementById('edit-form').addEventListener('submit',saveEditSession);
-    document.getElementById('edit-student-form').addEventListener('submit',saveEditStudent);
-    document.getElementById('edit-group-form').addEventListener('submit',saveEditGroup);
+  // Theme & Font
+  setTheme(Store.profile.theme || 'dark');
+  setFont(Store.profile.font || "'Be Vietnam Pro',sans-serif");
+  const fontEl = document.getElementById('p-font');
+  if (fontEl) fontEl.value = Store.profile.font || "'Be Vietnam Pro',sans-serif";
+  const nameEl = document.getElementById('p-name');
+  if (nameEl) nameEl.value = Store.profile.full_name || '';
 
-    ['f-start','f-end','f-student','f-group'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('change',recalcFee);});
-    document.getElementById('g-search').addEventListener('input',handleTagSearch);
-    document.getElementById('hamburger').addEventListener('click',function(){document.getElementById('sidebar').classList.toggle('open');});
-    document.querySelector('.page-wrap').addEventListener('click',function(){document.getElementById('sidebar').classList.remove('open');});
-    document.addEventListener('click',function(){hideCtx();});
+  renderWelcome();
+  closeRightPanel();
+  syncUI('✅ Synced');
+
+  // Menu navigation
+  document.querySelectorAll('.menu-item').forEach(function(m) {
+    m.addEventListener('click', function(e) {
+      e.preventDefault();
+      switchTab(m.dataset.tab);
+    });
+  });
+
+  // Hamburger
+  const hamburger = document.getElementById('hamburger');
+  if (hamburger) hamburger.addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
 });
 
+/* ===== PROFILE FUNCTIONS ===== */
+async function saveName(n) {
+  n = n || 'Giáo viên';
+  Store.profile.full_name = n;
+  syncUI('🔄...');
+  await db.from('profiles').upsert({ id: CONFIG.USER_ID, full_name: n, theme: Store.profile.theme, font: Store.profile.font });
+  const el = (id) => document.getElementById(id);
+  if (el('welcome-name')) el('welcome-name').textContent = n;
+  if (el('profile-display-name')) el('profile-display-name').textContent = n;
+  syncUI('✅ Synced');
+}
 
+async function setTheme(t) {
+  document.body.setAttribute('data-theme', t);
+  // Update buttons in profile page
+  document.querySelectorAll('.theme-toggle .btn').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  if (t === 'light') {
+    document.querySelector('.theme-toggle .btn:first-child')?.classList.add('active');
+  } else {
+    document.querySelector('.theme-toggle .btn:last-child')?.classList.add('active');
+  }
+  if (Store.profile.theme !== t) {
+    Store.profile.theme = t;
+    await db.from('profiles').upsert({ id: CONFIG.USER_ID, full_name: Store.profile.full_name, theme: t, font: Store.profile.font });
+  }
+}
 
+async function setFont(f) {
+  document.body.style.fontFamily = f;
+  if (Store.profile.font !== f) {
+    Store.profile.font = f;
+    await db.from('profiles').upsert({ id: CONFIG.USER_ID, full_name: Store.profile.full_name, theme: Store.profile.theme, font: f });
+  }
+}
+
+function confirmNuke() { document.getElementById('modal-nuke').hidden = false; }
+function closeNuke() { document.getElementById('modal-nuke').hidden = true; }
+
+async function nukeData() {
+  syncUI('🔄...');
+  await db.from('sessions').delete().eq('user_id', CONFIG.USER_ID);
+  await db.from('students').delete().eq('user_id', CONFIG.USER_ID);
+  await db.from('groups').delete().eq('user_id', CONFIG.USER_ID);
+  localStorage.removeItem('cs-groups');
+  Store.sessions = []; Store.students = []; Store.groups = [];
+  closeNuke();
+  renderWelcome();
+  updateDashboard();
+  renderStudents();
+  renderGroups();
+  syncUI('✅ Deleted');
+}
 
 /* ===== GOOGLE CALENDAR + NOTION INTEGRATION ===== */
 let gcalEvents = [];
@@ -63,10 +108,10 @@ async function loadAllExternalData() {
     updateStats();
     renderStudents();
     renderGroups();
-    if (typeof syncUI === 'function') syncUI('Synced');
+    if (typeof syncUI === 'function') syncUI('✅ Synced');
   } catch (e) {
     console.warn('External data load failed:', e);
-    if (typeof syncUI === 'function') syncUI('Offline');
+    if (typeof syncUI === 'function') syncUI('⚠️ Offline');
   }
 }
 
@@ -133,7 +178,6 @@ function updateStats(period) {
   if (el('st-hours')) el('st-hours').textContent = Math.floor(minutes / 60) + 'h';
   if (el('st-avg')) el('st-avg').textContent = avg + 'k';
 
-  // Chi tiet theo hoc vien
   if (el('stats-detail')) {
     const studentMap = new Map();
     done.forEach(s => {
@@ -142,12 +186,12 @@ function updateStats(period) {
       const st = studentMap.get(s.student);
       st.count++; st.fee += s.fee || 0; st.min += s.duration || 0;
     });
-    const rows = [...studentMap.entries()].sort((a,b) => b[1].fee - a[1].fee);
+    const rows = [...studentMap.entries()].sort((a, b) => b[1].fee - a[1].fee);
     if (rows.length === 0) {
       el('stats-detail').innerHTML = '<p class="muted">Chưa có dữ liệu.</p>';
     } else {
       el('stats-detail').innerHTML = rows.map(([name, d]) =>
-        '<div class="stats-student-row"><span class="stats-student-name">' + name + '</span><span class="stats-student-info">' + d.count + ' buổi · ' + Math.round(d.fee/1000) + 'k · ' + Math.floor(d.min/60) + 'h</span></div>'
+        '<div class="stats-student-row"><span class="stats-student-name">' + name + '</span><span class="stats-student-info">' + d.count + ' buổi · ' + Math.round(d.fee / 1000) + 'k · ' + Math.floor(d.min / 60) + 'h</span></div>'
       ).join('');
     }
   }
@@ -164,5 +208,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+// Load external data
 setTimeout(loadAllExternalData, 800);
 setInterval(loadAllExternalData, 120000);
