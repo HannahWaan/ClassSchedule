@@ -1,6 +1,6 @@
 @media(min-width:769px) and (max-width:1200px){
   .grid-4{grid-template-columns:repeat(2,1fr)}
-  .page-wrap{padding:24px 20px}
+  .content-wrap{padding:24px 20px}
   .right-panel{width:280px}
   .profile-layout{grid-template-columns:1fr;max-width:560px}
   .avatar-section{grid-row:auto;flex-direction:row;gap:16px;text-align:left}
@@ -10,9 +10,9 @@
   .sidebar.open{transform:translateX(0)}
   .main{margin-left:0;width:100%}
   .hamburger{display:block}
-  .page-wrap{padding:16px 12px}
-  .header{padding:12px 14px}
-  .header-title{font-size:1rem}
+  .content-wrap{padding:16px 12px}
+  .topbar{padding:12px 14px}
+  .topbar-title{font-size:1rem}
   .right-panel{position:fixed;top:0;right:0;bottom:0;width:85vw;max-width:320px;z-index:200;transform:translateX(100%);background:var(--bg2)}
   .right-panel.open{transform:translateX(0)}
   .right-panel.hidden{transform:translateX(100%)}
