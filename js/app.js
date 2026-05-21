@@ -1,7 +1,7 @@
-/* ===== APP.JS - Main initialization ===== */
+/* ===== APP.JS ===== */
 
 function renderWelcome() {
-  const el = (id) => document.getElementById(id);
+  var el = function(id) { return document.getElementById(id); };
   if (el('welcome-name')) el('welcome-name').textContent = Store.profile.full_name || 'Giáo viên';
   if (el('profile-display-name')) el('profile-display-name').textContent = Store.profile.full_name || 'Giáo viên';
 }
@@ -11,15 +11,14 @@ document.addEventListener('DOMContentLoaded', async function() {
   await Store.load();
   setTheme(Store.profile.theme || 'dark');
   setFont(Store.profile.font || "'Be Vietnam Pro',sans-serif");
-  const fontEl = document.getElementById('p-font');
+  var fontEl = document.getElementById('p-font');
   if (fontEl) fontEl.value = Store.profile.font || "'Be Vietnam Pro',sans-serif";
-  const nameEl = document.getElementById('p-name');
+  var nameEl = document.getElementById('p-name');
   if (nameEl) nameEl.value = Store.profile.full_name || '';
   renderWelcome();
   closeRightPanel();
   syncUI('✅ Synced');
 
-  // Menu navigation
   document.querySelectorAll('.menu-item').forEach(function(m) {
     m.addEventListener('click', function(e) {
       e.preventDefault();
@@ -27,8 +26,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
   });
 
-  // Hamburger
-  const hamburger = document.getElementById('hamburger');
+  var hamburger = document.getElementById('hamburger');
   if (hamburger) hamburger.addEventListener('click', function() {
     document.getElementById('sidebar').classList.toggle('open');
   });
@@ -43,18 +41,16 @@ async function saveName(n) {
   renderWelcome();
   syncUI('✅');
 }
-
 async function setTheme(t) {
   document.body.setAttribute('data-theme', t);
-  document.querySelectorAll('.theme-toggle .btn').forEach(b => b.classList.remove('active'));
-  if (t === 'light') document.querySelector('.theme-toggle .btn:first-child')?.classList.add('active');
-  else document.querySelector('.theme-toggle .btn:last-child')?.classList.add('active');
+  document.querySelectorAll('.theme-toggle .btn').forEach(function(b) { b.classList.remove('active'); });
+  if (t === 'light') { var btn = document.querySelector('.theme-toggle .btn:first-child'); if (btn) btn.classList.add('active'); }
+  else { var btn = document.querySelector('.theme-toggle .btn:last-child'); if (btn) btn.classList.add('active'); }
   if (Store.profile.theme !== t) {
     Store.profile.theme = t;
     await db.from('profiles').upsert({ id: CONFIG.USER_ID, full_name: Store.profile.full_name, theme: t, font: Store.profile.font });
   }
 }
-
 async function setFont(f) {
   document.body.style.fontFamily = f;
   if (Store.profile.font !== f) {
@@ -62,29 +58,22 @@ async function setFont(f) {
     await db.from('profiles').upsert({ id: CONFIG.USER_ID, full_name: Store.profile.full_name, theme: Store.profile.theme, font: f });
   }
 }
-
 function confirmNuke() { document.getElementById('modal-nuke').hidden = false; }
 function closeNuke() { document.getElementById('modal-nuke').hidden = true; }
 async function nukeData() {
   syncUI('🔄...');
-  await db.from('sessions').delete().eq('user_id', CONFIG.USER_ID);
-  await db.from('students').delete().eq('user_id', CONFIG.USER_ID);
-  await db.from('groups').delete().eq('user_id', CONFIG.USER_ID);
-  localStorage.removeItem('cs-groups');
-  localStorage.removeItem('cs-student-overrides');
-  Store.sessions = []; Store.students = []; Store.groups = [];
+  localStorage.removeItem('cs-students-v2');
+  localStorage.removeItem('cs-groups-v2');
   closeNuke(); renderWelcome(); updateDashboard(); renderStudents(); renderGroups();
   syncUI('✅ Deleted');
 }
 
 /* ===== EXTERNAL DATA ===== */
-let gcalEvents = [];
+var gcalEvents = [];
 
 async function loadAllExternalData() {
   try {
-      GCalSync.fetchEvents(),
-    ]);
-    if (gcal.status === 'fulfilled') gcalEvents = gcal.value;
+    gcalEvents = await GCalSync.fetchEvents();
     updateDashboard();
     updateStats();
     renderStudents();
@@ -97,102 +86,225 @@ async function loadAllExternalData() {
 }
 
 function getAllSessions() {
-  const localMapped = (Store.sessions || []).map(s => ({
-    id: s.id, name: s.student_name || s.group_name || '',
-    date: s.date + 'T' + (s.start_time || '00:00'),
-    dateEnd: s.date + 'T' + (s.end_time || '00:00'),
-    student: s.student_name || '', fee: s.fee || 0,
-    duration: (typeof timeDiffMinutes === 'function') ? timeDiffMinutes(s.start_time, s.end_time) : 0,
-    status: s.done ? 'Done' : 'Not started', type: s.type || 'individual',
-    color: s.color || 'c1', note: s.note || '', source: 'local'
-  }));
+  var gcal = (typeof GCalSync !== 'undefined') ? GCalSync.getCache() : [];
+  var local = (Store.sessions || []).map(function(s) {
+    return {
+      id: s.id, name: s.student_name || s.group_name || '',
+      date: s.date + 'T' + (s.start_time || '00:00'),
+      dateEnd: s.date + 'T' + (s.end_time || '00:00'),
+      student: s.student_name || '', fee: s.fee || 0,
+      duration: timeDiffMinutes(s.start_time, s.end_time),
+      status: s.done ? 'Done' : 'Not started', type: s.type || 'individual',
+      color: s.color || 'c1', note: s.note || '', source: 'local'
+    };
+  });
 
-  // Apply hoc phi override
-  const overrides = (typeof getStudentOverrides === 'function') ? getStudentOverrides() : {};
-  all.forEach(s => {
-    if (s.student && overrides[s.student]?.fee && !s.fee) {
-      s.fee = overrides[s.student].fee;
+  var all = gcal.concat(local);
+
+  // Apply student fee overrides
+  var studentData = (typeof getStudentData === 'function') ? getStudentData() : [];
+  var feeMap = {};
+  studentData.forEach(function(s) { if (s.fee) feeMap[s.name] = s; });
+
+  all.forEach(function(s) {
+    if (s.student && feeMap[s.student]) {
+      var st = feeMap[s.student];
+      if (!s.fee || s.fee === 0) {
+        s.fee = st.fee || 0;
+      }
     }
   });
 
-  const map = new Map(); all.forEach(s => map.set(s.id, s));
-  return [...map.values()];
+  // Dedup by id
+  var map = new Map();
+  all.forEach(function(s) { map.set(s.id, s); });
+  return Array.from(map.values());
 }
 
+/* ===== DASHBOARD (Welcome) ===== */
 function updateDashboard() {
-  const all = getAllSessions();
-  const revenue = GCalSync.calcRevenue(all, 'month');
-  const minutes = GCalSync.calcMinutes(all, 'month');
-  const hours = Math.floor(minutes / 60);
-  const overrides = (typeof getStudentOverrides === 'function') ? getStudentOverrides() : {};
-  const activeStudents = GCalSync.uniqueStudents(all).filter(n => !overrides[n]?.completed);
-  const weekSessions = GCalSync.countSessions(all, 'week');
-  const upcomingList = GCalSync.upcoming(all, 5);
+  var all = getAllSessions();
+  var students = getAllStudents ? getAllStudents() : [];
+  var activeStudents = students.filter(function(s) { return !s.completed; });
 
-  const el = (id) => document.getElementById(id);
+  // Revenue this month
+  var monthSessions = GCalSync.filterByPeriod(all, 'month');
+  var doneSessions = monthSessions.filter(function(s) { return s.status === 'Done'; });
+
+  // Revenue from student fee data
+  var totalRevenue = 0;
+  activeStudents.forEach(function(st) { totalRevenue += st.earned || 0; });
+
+  var totalMinutes = doneSessions.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+  var weekSessions = GCalSync.filterByPeriod(all, 'week').length;
+
+  var el = function(id) { return document.getElementById(id); };
   if (el('w-students')) el('w-students').textContent = activeStudents.length;
   if (el('w-week')) el('w-week').textContent = weekSessions;
-  if (el('w-salary')) el('w-salary').textContent = Math.round(revenue / 1000) + 'k';
-  if (el('w-hours')) el('w-hours').textContent = hours + 'h';
+  if (el('w-salary')) el('w-salary').textContent = formatVND(totalRevenue);
+  if (el('w-hours')) el('w-hours').textContent = Math.floor(totalMinutes / 60) + 'h';
 
-  if (el('upcoming-list')) {
-    if (upcomingList.length === 0) {
-      el('upcoming-list').innerHTML = '<p class="muted">Không có buổi dạy sắp tới.</p>';
+  // Today's sessions
+  var todaySessions = GCalSync.filterByPeriod(all, 'today').sort(function(a,b) { return new Date(a.date) - new Date(b.date); });
+  if (el('today-list')) {
+    if (todaySessions.length === 0) {
+      el('today-list').innerHTML = '<p class="muted">Hôm nay không có buổi dạy.</p>';
     } else {
-      el('upcoming-list').innerHTML = upcomingList.map(s => {
-        const d = new Date(s.date);
-        const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-        const date = d.toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'numeric' });
-        const fee = Math.round((s.fee || 0) / 1000) + 'k';
-        return '<div class="upcoming-item"><span class="upcoming-time">' + date + ' ' + time + '</span><span class="upcoming-name">' + (s.name || s.student) + '</span><span class="upcoming-fee">' + fee + '</span></div>';
+      el('today-list').innerHTML = todaySessions.map(function(s) {
+        var d = new Date(s.date);
+        var time = d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+        var statusIcon = s.status === 'Done' ? '✅' : '🕐';
+        return '<div class="s-item"><div class="s-item-info"><strong>' + statusIcon + ' ' + (s.name || s.student) + '</strong><span>' + time + ' · ' + (s.duration || 0) + 'p · ' + formatVND(s.fee || 0) + '</span></div></div>';
+      }).join('');
+    }
+  }
+
+  // This week's sessions
+  var weekList = GCalSync.filterByPeriod(all, 'week').sort(function(a,b) { return new Date(a.date) - new Date(b.date); });
+  if (el('week-list')) {
+    if (weekList.length === 0) {
+      el('week-list').innerHTML = '<p class="muted">Tuần này không có buổi dạy.</p>';
+    } else {
+      el('week-list').innerHTML = weekList.map(function(s) {
+        var d = new Date(s.date);
+        var day = d.toLocaleDateString('vi-VN',{weekday:'short',day:'numeric',month:'numeric'});
+        var time = d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+        var statusIcon = s.status === 'Done' ? '✅' : '🕐';
+        return '<div class="s-item"><div class="s-item-info"><strong>' + statusIcon + ' ' + (s.name || s.student) + '</strong><span>' + day + ' ' + time + ' · ' + formatVND(s.fee || 0) + '</span></div></div>';
       }).join('');
     }
   }
 }
 
-function updateStats(period) {
-  period = period || document.querySelector('.ptab.active')?.dataset?.period || 'month';
-  const all = getAllSessions();
-  const filtered = GCalSync.filterByPeriod(all, period);
-  const done = filtered.filter(s => s.status === 'Done');
-  const revenue = done.reduce((sum, s) => sum + (s.fee || 0), 0);
-  const minutes = done.reduce((sum, s) => sum + (s.duration || 0), 0);
-  const students = [...new Set(filtered.map(s => s.student).filter(Boolean))].length;
-  const avg = done.length > 0 ? Math.round(revenue / done.length / 1000) : 0;
+/* ===== STATS ===== */
+var currentStatsMonth = null; // null = all
+var currentStatsFilter = 'all';
 
-  const el = (id) => document.getElementById(id);
-  if (el('st-total')) el('st-total').textContent = filtered.length;
-  if (el('st-done')) el('st-done').textContent = done.length;
-  if (el('st-students')) el('st-students').textContent = students;
-  if (el('st-revenue')) el('st-revenue').textContent = Math.round(revenue / 1000) + 'k';
-  if (el('st-hours')) el('st-hours').textContent = Math.floor(minutes / 60) + 'h';
-  if (el('st-avg')) el('st-avg').textContent = avg + 'k';
-
-  if (el('stats-detail')) {
-    const studentMap = new Map();
-    done.forEach(s => {
-      if (!s.student) return;
-      if (!studentMap.has(s.student)) studentMap.set(s.student, { count: 0, fee: 0, min: 0 });
-      const st = studentMap.get(s.student);
-      st.count++; st.fee += s.fee || 0; st.min += s.duration || 0;
-    });
-    const rows = [...studentMap.entries()].sort((a, b) => b[1].fee - a[1].fee);
-    el('stats-detail').innerHTML = rows.length === 0
-      ? '<p class="muted">Chưa có dữ liệu.</p>'
-      : rows.map(([name, d]) => '<div class="stats-student-row"><span class="stats-student-name">' + name + '</span><span class="stats-student-info">' + d.count + ' buổi · ' + Math.round(d.fee / 1000) + 'k · ' + Math.floor(d.min / 60) + 'h</span></div>').join('');
+function buildMonthBar() {
+  var bar = document.getElementById('stats-month-bar');
+  if (!bar) return;
+  var now = new Date();
+  var months = [{label:'Tất cả',value:null}];
+  for (var i = 0; i < 6; i++) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({label:'T' + (d.getMonth()+1) + '/' + d.getFullYear(), value: d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0')});
   }
+  bar.innerHTML = months.map(function(m) {
+    var active = (m.value === currentStatsMonth) ? ' active' : '';
+    var val = m.value === null ? 'null' : m.value;
+    return '<button class="ptab' + active + '" onclick="setStatsMonth(' + (m.value === null ? 'null' : "'" + m.value + "'") + ')">' + m.label + '</button>';
+  }).join('');
 }
 
-// Period tabs
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.ptab').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      updateStats(this.dataset.period);
-    });
-  });
-});
+function setStatsMonth(m) {
+  currentStatsMonth = m === null || m === 'null' ? null : m;
+  buildMonthBar();
+  updateStats();
+}
 
+function updateStats() {
+  buildMonthBar();
+  var all = getAllSessions();
+  var students = (typeof getAllStudents === 'function') ? getAllStudents() : [];
+
+  // Filter by month
+  var filtered;
+  if (currentStatsMonth) {
+    var parts = currentStatsMonth.split('-');
+    var yr = parseInt(parts[0]), mo = parseInt(parts[1]) - 1;
+    var start = new Date(yr, mo, 1);
+    var end = new Date(yr, mo + 1, 0, 23, 59, 59);
+    filtered = all.filter(function(s) { var d = new Date(s.date); return d >= start && d <= end; });
+  } else {
+    filtered = all;
+  }
+
+  var done = filtered.filter(function(s) { return s.status === 'Done'; });
+
+  // Revenue calc from student data
+  var totalExpected = 0, totalEarned = 0;
+  students.forEach(function(st) {
+    var stSessions = filtered.filter(function(s) { return s.student === st.name; });
+    var stDone = stSessions.filter(function(s) { return s.status === 'Done'; });
+
+    var earned, expected;
+    if (st.feeType === 'per-session' || st.feeType === 'free-session') {
+      earned = stDone.length * (st.fee || 0);
+      expected = stSessions.length * (st.fee || 0);
+    } else {
+      var doneMonths = new Set(), allMonths = new Set();
+      stDone.forEach(function(s) { var d = new Date(s.date); doneMonths.add(d.getFullYear()+'-'+d.getMonth()); });
+      stSessions.forEach(function(s) { var d = new Date(s.date); allMonths.add(d.getFullYear()+'-'+d.getMonth()); });
+      earned = doneMonths.size * (st.fee || 0);
+      expected = allMonths.size * (st.fee || 0);
+    }
+    totalEarned += earned;
+    totalExpected += expected;
+  });
+
+  var uncollected = Math.max(0, totalExpected - totalEarned);
+  var minutes = done.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+  var activeCount = students.filter(function(s) { return !s.completed; }).length;
+  var avg = done.length > 0 ? Math.round(totalEarned / done.length) : 0;
+
+  var el = function(id) { return document.getElementById(id); };
+  if (el('st-revenue')) el('st-revenue').textContent = formatVND(totalExpected);
+  if (el('st-collected')) el('st-collected').textContent = formatVND(totalEarned);
+  if (el('st-uncollected')) el('st-uncollected').textContent = formatVND(uncollected);
+  if (el('st-students')) el('st-students').textContent = activeCount;
+  if (el('st-total')) el('st-total').textContent = filtered.length;
+  if (el('st-done')) el('st-done').textContent = done.length;
+  if (el('st-hours')) el('st-hours').textContent = Math.floor(minutes / 60) + 'h';
+  if (el('st-avg')) el('st-avg').textContent = formatVND(avg);
+
+  // Detail by student
+  renderStatsDetail(filtered, students);
+
+  // Setup filter tabs
+  document.querySelectorAll('.stab').forEach(function(btn) {
+    btn.onclick = function() {
+      document.querySelectorAll('.stab').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      currentStatsFilter = this.dataset.filter;
+      renderStatsDetail(filtered, students);
+    };
+  });
+}
+
+function renderStatsDetail(filtered, students) {
+  var detail = document.getElementById('stats-detail');
+  if (!detail) return;
+
+  var list = students;
+  if (currentStatsFilter === 'active') list = list.filter(function(s) { return !s.completed; });
+  else if (currentStatsFilter === 'completed') list = list.filter(function(s) { return s.completed; });
+
+  if (list.length === 0) {
+    detail.innerHTML = '<p class="muted">Không có dữ liệu.</p>';
+    return;
+  }
+
+  detail.innerHTML = list.map(function(st) {
+    var stSessions = filtered.filter(function(s) { return s.student === st.name; });
+    var stDone = stSessions.filter(function(s) { return s.status === 'Done'; });
+    var earned;
+    if (st.feeType === 'per-session' || st.feeType === 'free-session') {
+      earned = stDone.length * (st.fee || 0);
+    } else {
+      var months = new Set();
+      stDone.forEach(function(s) { var d = new Date(s.date); months.add(d.getFullYear()+'-'+d.getMonth()); });
+      earned = months.size * (st.fee || 0);
+    }
+    var mins = stDone.reduce(function(sum,s) { return sum + (s.duration||0); },0);
+    var statusTag = st.completed ? '<span class="stu-done-tag">Đã xong</span>' : '';
+
+    return '<div class="stats-student-row">' +
+      '<div><span class="stats-student-name">' + st.name + '</span> ' + statusTag + '</div>' +
+      '<span class="stats-student-info">' + stDone.length + '/' + stSessions.length + ' buổi · ' + formatVND(earned) + ' · ' + Math.floor(mins/60) + 'h</span>' +
+    '</div>';
+  }).sort(function(a,b) { return 0; }).join('');
+}
+
+/* ===== INIT ===== */
 setTimeout(loadAllExternalData, 800);
 setInterval(loadAllExternalData, 120000);

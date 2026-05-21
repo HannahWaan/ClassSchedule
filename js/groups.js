@@ -1,133 +1,150 @@
-/* ===== GROUPS - Gop hoc vien tu GCal ===== */
+/* ===== GROUPS.JS - Lớp nhóm ===== */
 
 function getGroups() {
-  try { return JSON.parse(localStorage.getItem('cs-groups') || '[]'); } catch(e) { return []; }
+  try { return JSON.parse(localStorage.getItem('cs-groups-v2') || '[]'); } catch(e) { return []; }
 }
 function saveGroups(groups) {
-  localStorage.setItem('cs-groups', JSON.stringify(groups));
+  localStorage.setItem('cs-groups-v2', JSON.stringify(groups));
 }
 
 function renderGroups() {
-  const root = document.getElementById('groups-root');
+  var root = document.getElementById('groups-root');
   if (!root) return;
-  const groups = getGroups();
+  var groups = getGroups();
 
   if (groups.length === 0) {
-    root.innerHTML = '<p class="muted">Chưa có nhóm nào. Bấm "Tạo nhóm" để gộp học viên.</p>';
+    root.innerHTML = '<p class="muted">Chưa có lớp nhóm. Bấm "Tạo lớp nhóm" để bắt đầu.</p>';
     return;
   }
 
-  const all = (typeof getAllSessions === 'function') ? getAllSessions() : [];
+  var allSessions = (typeof getAllSessions === 'function') ? getAllSessions() : [];
 
-  root.innerHTML = groups.map((g, i) => {
-    const memberSessions = all.filter(s => g.members.includes(s.student));
-    const doneSessions = memberSessions.filter(s => s.status === 'Done');
-    const totalFee = g.feeType === 'group'
-      ? doneSessions.length * (g.groupFee || 0)
-      : doneSessions.reduce((sum, s) => sum + (s.fee || 0), 0);
-    const feeLabel = g.feeType === 'group'
-      ? Math.round((g.groupFee || 0) / 1000) + 'k/buổi (cả nhóm)'
-      : 'Mỗi người 1 học phí';
+  root.innerHTML = groups.map(function(g, i) {
+    var memberSessions = allSessions.filter(function(s) { return g.members.indexOf(s.student) !== -1; });
+    var doneSessions = memberSessions.filter(function(s) { return s.status === 'Done'; });
+    var totalFee = doneSessions.length * (g.fee || 0);
 
-    return '<div class="student-card-auto">' +
-      '<div class="student-name">' + g.name + ' <span style="font-size:0.8rem;color:var(--text-muted)">(' + g.members.length + ' học viên)</span></div>' +
-      '<div class="student-meta">' +
-        '<span>👥 ' + g.members.join(', ') + '</span>' +
-        (g.program ? '<span>📖 ' + g.program + '</span>' : '') +
-        '<span>💰 ' + feeLabel + '</span>' +
-        '<span>💵 Đã thu: ' + Math.round(totalFee / 1000) + 'k</span>' +
-        '<span>📚 ' + doneSessions.length + ' buổi đã dạy</span>' +
-      '</div>' +
-      '<div style="margin-top:10px;display:flex;gap:8px">' +
-        '<button class="btn btn-ghost btn-sm" onclick="editGroup(' + i + ')">✏️ Sửa</button>' +
-        '<button class="btn btn-ghost btn-sm" onclick="deleteGroup(' + i + ')">🗑️ Xóa</button>' +
+    return '<div class="group-card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+        '<div>' +
+          '<h4>' + g.name + '</h4>' +
+          (g.program ? '<p>📖 ' + g.program + '</p>' : '') +
+          '<p>💰 ' + formatVND(g.fee || 0) + '/buổi</p>' +
+          '<p>📚 ' + doneSessions.length + ' buổi đã dạy · 💵 ' + formatVND(totalFee) + '</p>' +
+          '<div class="group-members">' + g.members.map(function(m) { return '<span class="group-member-tag">' + m + '</span>'; }).join('') + '</div>' +
+          (g.note ? '<p style="font-size:.78rem;color:var(--text3);margin-top:6px">📝 ' + g.note + '</p>' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:6px">' +
+          '<button class="btn btn-ghost btn-sm" onclick="openEditGroup(' + i + ')">✏️</button>' +
+          '<button class="btn btn-ghost btn-sm" onclick="deleteGroup(' + i + ')">🗑️</button>' +
+        '</div>' +
       '</div></div>';
   }).join('');
 }
 
-function populateGroupTagInput() {
-  const names = (typeof getActiveStudentNames === 'function') ? getActiveStudentNames() : [];
-  const dropdown = document.getElementById('g-dropdown');
-  const search = document.getElementById('g-search');
-  if (!dropdown || !search) return;
+function openGroupModal() {
+  document.getElementById('group-modal-title').textContent = 'Tạo lớp nhóm';
+  document.getElementById('gf-id').value = '';
+  document.getElementById('gf-name').value = '';
+  document.getElementById('gf-fee').value = '';
+  document.getElementById('gf-program').value = '';
+  document.getElementById('gf-note').value = '';
+  window._groupMembers = [];
+  renderGroupChips();
+  setupGroupTagInput();
+  document.getElementById('modal-group').hidden = false;
+}
 
-  window._groupTagMembers = window._groupTagMembers || [];
+function openEditGroup(i) {
+  var groups = getGroups();
+  var g = groups[i];
+  if (!g) return;
+  document.getElementById('group-modal-title').textContent = 'Sửa lớp nhóm';
+  document.getElementById('gf-id').value = String(i);
+  document.getElementById('gf-name').value = g.name;
+  document.getElementById('gf-fee').value = g.fee || '';
+  document.getElementById('gf-program').value = g.program || '';
+  document.getElementById('gf-note').value = g.note || '';
+  window._groupMembers = g.members ? g.members.slice() : [];
+  renderGroupChips();
+  setupGroupTagInput();
+  document.getElementById('modal-group').hidden = false;
+}
+
+function closeGroupModal() { document.getElementById('modal-group').hidden = true; }
+
+function setupGroupTagInput() {
+  var search = document.getElementById('gf-search');
+  var dropdown = document.getElementById('gf-dropdown');
+  if (!search || !dropdown) return;
 
   search.oninput = function() {
-    const q = this.value.toLowerCase();
-    const filtered = names.filter(n => n.toLowerCase().includes(q) && !window._groupTagMembers.includes(n));
-    dropdown.innerHTML = filtered.map(n => '<div class="tag-option" onclick="addGroupMember(\'' + n.replace(/'/g, "\\'") + '\')">' + n + '</div>').join('');
+    var names = (typeof getActiveStudentNames === 'function') ? getActiveStudentNames() : [];
+    var q = this.value.toLowerCase();
+    var filtered = names.filter(function(n) {
+      return n.toLowerCase().indexOf(q) !== -1 && (window._groupMembers || []).indexOf(n) === -1;
+    });
+    dropdown.innerHTML = filtered.map(function(n) {
+      return '<div class="tag-option" onclick="addGroupMember(\'' + encodeKey(n) + '\')">' + n + '</div>';
+    }).join('');
     dropdown.style.display = filtered.length ? 'block' : 'none';
   };
 }
 
-function addGroupMember(name) {
-  if (!window._groupTagMembers) window._groupTagMembers = [];
-  if (window._groupTagMembers.includes(name)) return;
-  window._groupTagMembers.push(name);
+function addGroupMember(key) {
+  var name = decodeKey(key);
+  if (!window._groupMembers) window._groupMembers = [];
+  if (window._groupMembers.indexOf(name) !== -1) return;
+  window._groupMembers.push(name);
   renderGroupChips();
-  document.getElementById('g-search').value = '';
-  document.getElementById('g-dropdown').style.display = 'none';
+  document.getElementById('gf-search').value = '';
+  document.getElementById('gf-dropdown').style.display = 'none';
 }
 
-function removeGroupMember(name) {
-  window._groupTagMembers = (window._groupTagMembers || []).filter(n => n !== name);
+function removeGroupMember(key) {
+  var name = decodeKey(key);
+  window._groupMembers = (window._groupMembers || []).filter(function(n) { return n !== name; });
   renderGroupChips();
 }
 
 function renderGroupChips() {
-  const chips = document.getElementById('g-chips');
+  var chips = document.getElementById('gf-chips');
   if (!chips) return;
-  chips.innerHTML = (window._groupTagMembers || []).map(n => '<span class="tag-chip">' + n + ' <button type="button" onclick="removeGroupMember(\'' + n.replace(/'/g, "\\'") + '\')">✕</button></span>').join('');
+  chips.innerHTML = (window._groupMembers || []).map(function(n) {
+    return '<span class="tag-chip">' + n + ' <button type="button" onclick="removeGroupMember(\'' + encodeKey(n) + '\')">✕</button></span>';
+  }).join('');
 }
 
-// Save group form
-document.addEventListener('DOMContentLoaded', function() {
-  const form = document.getElementById('group-form');
-  if (form) form.onsubmit = function(e) {
-    e.preventDefault();
-    const name = document.getElementById('g-name').value.trim();
-    const program = document.getElementById('g-program')?.value.trim() || '';
-    const note = document.getElementById('g-note')?.value.trim() || '';
-    if (!name || !(window._groupTagMembers || []).length) return alert('Nhập tên nhóm và chọn ít nhất 1 học viên');
+function saveGroup(e) {
+  e.preventDefault();
+  var editIdx = document.getElementById('gf-id').value;
+  var name = document.getElementById('gf-name').value.trim();
+  var fee = parseInt(document.getElementById('gf-fee').value) || 0;
+  var program = document.getElementById('gf-program').value.trim();
+  var note = document.getElementById('gf-note').value.trim();
+  var members = window._groupMembers || [];
 
-    // Hoi loai hoc phi
-    const feeType = confirm('Nhóm này tính 1 học phí chung?\n\nOK = 1 học phí cả nhóm\nCancel = Mỗi người 1 học phí') ? 'group' : 'individual';
-    let groupFee = 0;
-    if (feeType === 'group') {
-      const input = prompt('Học phí cả nhóm / buổi (VNĐ):', '0');
-      groupFee = parseInt(input) || 0;
-    }
+  if (!name) return alert('Nhập tên lớp nhóm');
+  if (members.length === 0) return alert('Chọn ít nhất 1 thành viên');
 
-    const groups = getGroups();
-    groups.push({ name, program, note, members: [...window._groupTagMembers], feeType, groupFee });
-    saveGroups(groups);
-    closeGroupModal();
-    renderGroups();
-    form.reset();
-    window._groupTagMembers = [];
-    renderGroupChips();
-  };
-});
+  var groups = getGroups();
+  var obj = { name: name, fee: fee, program: program, note: note, members: members };
 
-function deleteGroup(i) {
-  if (!confirm('Xóa nhóm này?')) return;
-  const groups = getGroups();
-  groups.splice(i, 1);
+  if (editIdx !== '') {
+    groups[parseInt(editIdx)] = obj;
+  } else {
+    groups.push(obj);
+  }
+
   saveGroups(groups);
+  closeGroupModal();
   renderGroups();
 }
 
-function editGroup(i) {
-  const groups = getGroups();
-  const g = groups[i];
-  if (!g) return;
-  document.getElementById('g-name').value = g.name;
-  if (document.getElementById('g-program')) document.getElementById('g-program').value = g.program || '';
-  if (document.getElementById('g-note')) document.getElementById('g-note').value = g.note || '';
-  window._groupTagMembers = [...g.members];
-  renderGroupChips();
-  openGroupModal();
+function deleteGroup(i) {
+  if (!confirm('Xóa lớp nhóm này?')) return;
+  var groups = getGroups();
   groups.splice(i, 1);
   saveGroups(groups);
+  renderGroups();
 }

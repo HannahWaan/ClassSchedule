@@ -96,3 +96,26 @@
 .stats-student-row:last-child { border-bottom: none; }
 .stats-student-name { font-weight: 500; }
 .stats-student-info { color: var(--text-muted); font-size: 0.85rem; }
+
+/* === Stats Month Bar === */
+.stats-month-bar{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.stats-filter-tabs{display:flex;gap:6px;margin-bottom:16px}
+.stab{padding:8px 20px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text2);font-size:.84rem;font-weight:500;cursor:pointer;transition:all .2s;font-family:var(--font-body)}
+.stab:hover{border-color:var(--accent);color:var(--accent)}
+.stab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;box-shadow:0 4px 14px var(--accent-glow)}
+/* === Students List === */
+.students-list{display:flex;flex-direction:column;gap:12px}
+/* === Schedule Row in Modal === */
+.schedule-row{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;display:flex;flex-direction:column;gap:8px}
+.sc-days{display:flex;flex-wrap:wrap;gap:4px}
+.day-chip,.day-chip-sm{display:inline-flex;align-items:center;cursor:pointer}
+.day-chip input,.day-chip-sm input{display:none}
+.day-chip span,.day-chip-sm span{padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:.78rem;color:var(--text2);transition:all .2s;user-select:none}
+.day-chip-sm span{padding:4px 10px;font-size:.72rem}
+.day-chip input:checked+span,.day-chip-sm input:checked+span{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;box-shadow:0 2px 8px var(--accent-glow)}
+/* === Day Picker === */
+.day-picker{display:flex;flex-wrap:wrap;gap:6px}
+/* === Completed Section === */
+.completed-section{margin-top:24px}
+.completed-header{cursor:pointer;color:var(--text3);font-size:.9rem;padding:8px 0;user-select:none}
+.completed-header:hover{color:var(--accent)}
