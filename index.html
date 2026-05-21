@@ -217,14 +217,15 @@
 <div class="modal-backdrop" id="student-delete-modal" hidden>
 <div class="modal-box" style="max-width:420px">
     <div class="modal-top"><h3>Xoa hoc vien</h3><button class="modal-x" onclick="handleStudentDelete('cancel')">✕</button></div>
-    <p style="margin:8px 0 16px;color:var(--text2);font-size:.9rem">Xoa <strong id="sdm-name"></strong>. Ban muon xoa nhu the nao?</p>
+    <p style="margin:8px 0 16px;color:var(--text2);font-size:.9rem">Xoa <strong id="sdm-name"></strong>?</p>
     <div style="display:flex;flex-direction:column;gap:10px">
       <button class="btn btn-danger" onclick="handleStudentDelete('gcal')">🗑️ Xoa ca tren Google Calendar</button>
-      <button class="btn btn-outline" onclick="handleStudentDelete('hide')">👁️‍🗨️ Chi an khoi ClassSchedule (giu lai tren GCal)</button>
-      <button class="btn btn-outline" onclick="handleStudentDelete('local')">📋 Chi xoa du lieu hoc vien (giu su kien)</button>
+      <button class="btn btn-outline" onclick="handleStudentDelete('hide')">👁️ Chi an khoi ClassSchedule</button>
+      <button class="btn btn-outline" onclick="handleStudentDelete('local')">📋 Chi xoa du lieu hoc vien</button>
       <button class="btn btn-ghost" onclick="handleStudentDelete('cancel')" style="margin-top:4px">Huy</button>
     </div>
 </div></div>
+
 <!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
