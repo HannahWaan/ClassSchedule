@@ -79,16 +79,12 @@ async function nukeData() {
 
 /* ===== EXTERNAL DATA ===== */
 let gcalEvents = [];
-let notionSessions = [];
 
 async function loadAllExternalData() {
   try {
-    const [gcal, notion] = await Promise.allSettled([
       GCalSync.fetchEvents(),
-      (typeof NotionSync !== 'undefined') ? NotionSync.fetchAll() : Promise.resolve([])
     ]);
     if (gcal.status === 'fulfilled') gcalEvents = gcal.value;
-    if (notion.status === 'fulfilled') notionSessions = notion.value;
     updateDashboard();
     updateStats();
     renderStudents();
@@ -110,7 +106,6 @@ function getAllSessions() {
     status: s.done ? 'Done' : 'Not started', type: s.type || 'individual',
     color: s.color || 'c1', note: s.note || '', source: 'local'
   }));
-  const all = [...localMapped, ...gcalEvents, ...notionSessions];
 
   // Apply hoc phi override
   const overrides = (typeof getStudentOverrides === 'function') ? getStudentOverrides() : {};
