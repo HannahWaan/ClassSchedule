@@ -126,7 +126,7 @@ async function openDeleteModal(eventId) {
     const ev = await getEvent(eventId);
     if (ev.recurringEventId) {
       // Show recurring delete options
-      document.getElementById('recurring-delete-modal').classList.add('active');
+      document.getElementById('recurring-delete-modal').hidden = false;
     } else {
       // Single event: delete directly
       if (confirm('Xóa buổi dạy này?')) {
@@ -144,7 +144,7 @@ async function openDeleteModal(eventId) {
 }
 
 function closeRecurringDeleteModal() {
-  document.getElementById('recurring-delete-modal').classList.remove('active');
+  document.getElementById('recurring-delete-modal').hidden = true;
   _pendingDeleteId = null;
 }
 
@@ -183,7 +183,7 @@ function openAddEventModal() {
   document.getElementById('ev-end').value = '09:00';
   document.getElementById('ev-note').value = '';
   document.getElementById('ev-delete-btn').classList.add('hidden');
-  document.getElementById('event-modal').classList.add('active');
+  document.getElementById('modal-event').hidden = false;
 }
 
 async function openEditEventModal(eventId) {
@@ -198,11 +198,11 @@ async function openEditEventModal(eventId) {
   document.getElementById('ev-end').value = end.toTimeString().slice(0, 5);
   document.getElementById('ev-note').value = ev.description || '';
   document.getElementById('ev-delete-btn').classList.remove('hidden');
-  document.getElementById('event-modal').classList.add('active');
+  document.getElementById('modal-event').hidden = false;
 }
 
 function closeEventModal() {
-  document.getElementById('event-modal').classList.remove('active');
+  document.getElementById('modal-event').hidden = true;
   _editingEventId = null;
 }
 
