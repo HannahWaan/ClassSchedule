@@ -544,7 +544,7 @@ function createStudentOnGCal(name, schedules, repeat, startDateStr, count) {
     }
 
     console.log('GCal eventBody:', JSON.stringify(eventBody));
-    createEvent(eventBody).then(function() {
+    createEventRaw(eventBody).then(function() {
       console.log('Created GCal event for: ' + name);
       setTimeout(function(){ if (typeof refreshAfterChange === 'function') refreshAfterChange(); }, 800);
     }).catch(function(e) { console.warn('GCal create failed:', e); });

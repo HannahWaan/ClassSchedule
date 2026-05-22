@@ -93,6 +93,11 @@ async function createEvent(summary, start, end, description) {
   var res = await gcalFetch(GCAL_BASE + '/calendars/' + encodeURIComponent(GCAL_CAL_ID) + '/events', { method:'POST', body:JSON.stringify(body) });
   return res.json();
 }
+
+async function createEventRaw(body) {
+  var res = await gcalFetch(GCAL_BASE + "/calendars/" + encodeURIComponent(GCAL_CAL_ID) + "/events", { method:"POST", body:JSON.stringify(body) });
+  return res.json();
+}
 async function updateEvent(eventId, data) {
   var res = await gcalFetch(GCAL_BASE + '/calendars/' + encodeURIComponent(GCAL_CAL_ID) + '/events/' + eventId, { method:'PATCH', body:JSON.stringify(data) });
   return res.json();
