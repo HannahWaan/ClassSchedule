@@ -1,0 +1,49 @@
+{
+  "name": "classschedule",
+  "version": "1.0.0",
+  "description": "ClassSchedule - Quản lý lịch dạy",
+  "main": "main.js",
+  "author": "Hannah",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64",
+    "build:portable": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.hannah.classschedule",
+    "productName": "ClassSchedule",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "../index.html",
+      "../style.css",
+      "../css/**/*",
+      "../js/**/*",
+      "../favicon.svg"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": null
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "ClassSchedule"
+    }
+  }
+}
