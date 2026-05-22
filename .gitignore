@@ -2,3 +2,4 @@ node_modules/
 electron/node_modules/
 electron/dist/
 *.log
+electron/app/

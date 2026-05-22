@@ -18,18 +18,11 @@ function createWindow() {
     show: false
   });
 
-  // In packaged app, __dirname is inside app.asar
-  // index.html is at the root of the project (same level as electron folder)
-  const indexPath = path.join(__dirname, '..', 'index.html');
-  win.loadFile(indexPath);
+  // index.html is copied into app/ folder during build
+  win.loadFile(path.join(__dirname, 'app', 'index.html'));
 
   win.once('ready-to-show', () => {
     win.show();
-  });
-
-  // Debug: log if file not found
-  win.webContents.on('did-fail-load', (e, code, desc) => {
-    console.error('Failed to load:', code, desc);
   });
 }
 

@@ -1,14 +1,16 @@
 {
   "name": "classschedule",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "ClassSchedule - Quan ly lich day",
   "main": "main.js",
   "author": "Hannah",
   "license": "MIT",
   "scripts": {
-    "start": "electron .",
+    "prebuild:win": "node copy-app.js",
     "build:win": "electron-builder --win --x64",
-    "build:portable": "electron-builder --win portable"
+    "prebuild:portable": "node copy-app.js",
+    "build:portable": "electron-builder --win portable",
+    "start": "electron ."
   },
   "devDependencies": {
     "electron": "^33.0.0",
@@ -18,22 +20,11 @@
     "appId": "com.hannah.classschedule",
     "productName": "ClassSchedule",
     "directories": {
-      "output": "dist",
-      "buildResources": "build"
+      "output": "dist"
     },
     "files": [
       "main.js",
-      {
-        "from": "..",
-        "to": "..",
-        "filter": [
-          "index.html",
-          "style.css",
-          "css/**/*",
-          "js/**/*",
-          "favicon.svg"
-        ]
-      }
+      "app/**/*"
     ],
     "win": {
       "target": [
