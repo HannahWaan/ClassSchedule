@@ -123,11 +123,15 @@
             <div class="field"><label>Lặp lại</label>
                 <select id="sf-repeat">
                     <option value="none">Không lặp lại</option>
-                <option value="weekly">Mỗi tuần</option>
+                    <option value="weekly">Mỗi tuần</option>
                     <option value="daily">Mỗi ngày</option>
                     <option value="biweekly">2 tuần 1 lần</option>
                     <option value="monthly">1 tháng 1 lần</option>
                 </select>
+            </div>
+            <div class="field-row">
+                <div class="field"><label>Ngày bắt đầu</label><input type="date" id="sf-start-date"></div>
+                <div class="field"><label>Số buổi (0 = vô hạn)</label><input type="number" id="sf-count" min="0" value="0" placeholder="VD: 12"></div>
             </div>
         </div>
         <!-- FEE -->

@@ -476,7 +476,11 @@ function saveStudent(e) {
   // Ask to create on Google Calendar
   var addToGcal = document.getElementById('sf-add-gcal');
   if (addToGcal && addToGcal.checked && editId === '') {
-    createStudentOnGCal(name, schedules, repeat);
+    var sfStartDate = document.getElementById('sf-start-date');
+    var sfCount = document.getElementById('sf-count');
+    var startDateVal = sfStartDate ? sfStartDate.value : '';
+    var countVal = sfCount ? parseInt(sfCount.value) || 0 : 0;
+    createStudentOnGCal(name, schedules, repeat, startDateVal, countVal);
   }
 
   renderStudents();
@@ -484,29 +488,37 @@ function saveStudent(e) {
   if (typeof updateStats === 'function') updateStats();
 }
 
-function createStudentOnGCal(name, schedules, repeat) {
+function createStudentOnGCal(name, schedules, repeat, startDateStr, count) {
   if (typeof createEvent !== 'function') return;
   if (typeof isTokenValid === 'function' && !isTokenValid()) return;
   if (!schedules || schedules.length === 0) return;
 
+  var dayMap = ['SU','MO','TU','WE','TH','FR','SA'];
+
   schedules.forEach(function(sc) {
-    if (!sc.days || sc.days.length === 0) return;
-    var dayMap = ['SU','MO','TU','WE','TH','FR','SA'];
+    // Determine start date
+    var baseDate;
+    if (startDateStr) {
+      baseDate = new Date(startDateStr + 'T00:00:00');
+    } else {
+      // Default: next occurrence of first selected day
+      baseDate = new Date();
+      if (sc.days && sc.days.length > 0) {
+        var targetDay = sc.days[0];
+        var diff = (targetDay - baseDate.getDay() + 7) % 7;
+        if (diff === 0) diff = 7;
+        baseDate.setDate(baseDate.getDate() + diff);
+      } else {
+        baseDate.setDate(baseDate.getDate() + 1);
+      }
+    }
 
-    // Find next occurrence of the first selected day
-    var today = new Date();
-    var targetDay = sc.days[0];
-    var diff = (targetDay - today.getDay() + 7) % 7;
-    if (diff === 0) diff = 7;
-    var startDate = new Date(today);
-    startDate.setDate(today.getDate() + diff);
-
-    var y = startDate.getFullYear();
-    var m = String(startDate.getMonth()+1).padStart(2,'0');
-    var d = String(startDate.getDate()).padStart(2,'0');
+    var y = baseDate.getFullYear();
+    var m = String(baseDate.getMonth()+1).padStart(2,'0');
+    var d = String(baseDate.getDate()).padStart(2,'0');
     var dateStr = y + '-' + m + '-' + d;
-    var startDT = dateStr + 'T' + sc.start + ':00+07:00';
-    var endDT = dateStr + 'T' + sc.end + ':00+07:00';
+    var startDT = dateStr + 'T' + (sc.start || '19:00') + ':00';
+    var endDT = dateStr + 'T' + (sc.end || '20:00') + ':00';
 
     var eventBody = {
       summary: name,
@@ -514,18 +526,24 @@ function createStudentOnGCal(name, schedules, repeat) {
       end: { dateTime: endDT, timeZone: 'Asia/Ho_Chi_Minh' }
     };
 
-    // Add recurrence rule
+    // Add recurrence
     if (repeat && repeat !== 'none') {
-      var byDay = sc.days.map(function(di) { return dayMap[di]; }).join(',');
       var rule = 'RRULE:FREQ=';
-      if (repeat === 'weekly') rule += 'WEEKLY;BYDAY=' + byDay;
+      if (repeat === 'weekly') rule += 'WEEKLY';
       else if (repeat === 'daily') rule += 'DAILY';
-      else if (repeat === 'biweekly') rule += 'WEEKLY;INTERVAL=2;BYDAY=' + byDay;
+      else if (repeat === 'biweekly') rule += 'WEEKLY;INTERVAL=2';
       else if (repeat === 'monthly') rule += 'MONTHLY';
+
+      if (sc.days && sc.days.length > 0 && (repeat === 'weekly' || repeat === 'biweekly')) {
+        rule += ';BYDAY=' + sc.days.map(function(di) { return dayMap[di]; }).join(',');
+      }
+      if (count && count > 0) {
+        rule += ';COUNT=' + count;
+      }
       eventBody.recurrence = [rule];
     }
 
-    console.log("GCal eventBody:", JSON.stringify(eventBody));
+    console.log('GCal eventBody:', JSON.stringify(eventBody));
     createEvent(eventBody).then(function() {
       console.log('Created GCal event for: ' + name);
       setTimeout(function(){ if (typeof refreshAfterChange === 'function') refreshAfterChange(); }, 800);
