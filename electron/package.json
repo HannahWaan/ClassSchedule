@@ -1,7 +1,7 @@
 {
   "name": "classschedule",
-  "version": "1.0.0",
-  "description": "ClassSchedule - Quản lý lịch dạy",
+  "version": "1.0.1",
+  "description": "ClassSchedule - Quan ly lich day",
   "main": "main.js",
   "author": "Hannah",
   "license": "MIT",
@@ -18,30 +18,34 @@
     "appId": "com.hannah.classschedule",
     "productName": "ClassSchedule",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "main.js",
-      "../index.html",
-      "../style.css",
-      "../css/**/*",
-      "../js/**/*",
-      "../favicon.svg"
+      {
+        "from": "..",
+        "to": "..",
+        "filter": [
+          "index.html",
+          "style.css",
+          "css/**/*",
+          "js/**/*",
+          "favicon.svg"
+        ]
+      }
     ],
-    "extraResources": [],
     "win": {
       "target": [
         {
           "target": "nsis",
           "arch": ["x64"]
         }
-      ],
-      "icon": null
+      ]
     },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "shortcutName": "ClassSchedule"
     }

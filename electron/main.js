@@ -1,7 +1,6 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 
-// Remove default menu for cleaner look
 Menu.setApplicationMenu(null);
 
 function createWindow() {
@@ -11,31 +10,29 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: 'ClassSchedule',
-    icon: path.join(__dirname, '..', 'favicon.svg'),
     backgroundColor: '#09090b',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
     },
-    frame: true,
-    titleBarStyle: 'default',
     show: false
   });
 
-  win.loadFile(path.join(__dirname, '..', 'index.html'));
+  // In packaged app, __dirname is inside app.asar
+  // index.html is at the root of the project (same level as electron folder)
+  const indexPath = path.join(__dirname, '..', 'index.html');
+  win.loadFile(indexPath);
 
-  // Show window when ready (avoid white flash)
   win.once('ready-to-show', () => {
     win.show();
+  });
+
+  // Debug: log if file not found
+  win.webContents.on('did-fail-load', (e, code, desc) => {
+    console.error('Failed to load:', code, desc);
   });
 }
 
 app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
