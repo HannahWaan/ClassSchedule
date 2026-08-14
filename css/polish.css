@@ -1,0 +1,144 @@
+/* ============================================================
+   POLISH.CSS — nạp SAU tất cả file css khác
+   Chuẩn hoá khoảng cách / cỡ chữ / thẻ / nút / tab / modal
+   ============================================================ */
+
+:root{
+  --card-pad:16px;
+  --gap:12px;
+}
+
+/* ---------- 1. Nhịp trang ---------- */
+.page{padding-bottom:32px}
+.page > h2, .page-title{font-size:1.15rem;margin-bottom:4px}
+.section-desc,.danger-desc{margin-bottom:12px;line-height:1.5}
+.welcome-banner{padding:24px 22px;margin-bottom:var(--gap)}
+.welcome-text h2{font-size:1.25rem}
+
+/* ---------- 2. Mọi loại thẻ dùng chung 1 kiểu ---------- */
+.card,.profile-card,.stu-card,.group-card,.group-collapse-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:none;
+}
+.card{margin-bottom:var(--gap)}
+.card-header{padding:12px var(--card-pad);gap:10px;flex-wrap:wrap}
+.card-header h3{font-size:.88rem}
+.card-body{padding:var(--card-pad)}
+.profile-card{padding:var(--card-pad)}
+.group-card{padding:var(--card-pad);margin-bottom:var(--gap)}
+
+/* ---------- 3. Lưới không bao giờ vỡ ---------- */
+.grid-4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:var(--gap)}
+.grid-3{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:var(--gap)}
+.stu-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.profile-layout{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));max-width:960px;gap:var(--gap)}
+
+/* ---------- 4. Thẻ số liệu: căn trái, số thẳng cột ---------- */
+.card-stat{
+  padding:14px;text-align:left;
+  border:1px solid var(--border);
+  display:flex;flex-direction:column;gap:2px;
+}
+.card-stat-icon{font-size:1rem;margin-bottom:2px;opacity:.7}
+.card-stat-value{font-size:1.25rem;line-height:1.25;font-variant-numeric:tabular-nums}
+.card-stat-label{font-size:.68rem;margin-top:0}
+
+/* ---------- 5. Thẻ học viên: tên dài xuống 2 dòng, không cắt ---------- */
+.stu-card{padding:14px;min-height:0;gap:8px}
+.stu-card:hover{transform:none;border-color:var(--border-strong);box-shadow:none}
+.stu-info h4{
+  white-space:normal;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;line-height:1.3;min-height:2.3em;margin-bottom:6px;
+}
+.stu-info p{margin-bottom:2px}
+.stu-actions{margin-top:auto;justify-content:flex-end;flex-wrap:wrap;gap:4px}
+
+/* ---------- 6. Nút: cùng chiều cao, cùng bán kính ---------- */
+.btn{min-height:32px;justify-content:center;border-radius:var(--radius-xs)}
+.btn-sm{min-height:28px;padding:5px 10px}
+.btn-icon{width:30px;height:30px;flex:0 0 auto}
+.toolbar,.inline-header,.stu-filter-bar{gap:8px;margin-bottom:var(--gap)}
+
+/* ---------- 7. Tất cả tab về một kiểu "segmented" ---------- */
+.period-tabs,.stats-filter-tabs{
+  display:inline-flex;width:auto;gap:2px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:3px;margin-bottom:var(--gap);
+  flex-wrap:wrap;
+}
+.ptab,.stab{border:none;background:transparent;padding:6px 12px;border-radius:var(--radius-xs)}
+.ptab.active,.stab.active{background:var(--surface);color:var(--text);border:none;box-shadow:var(--shadow-sm)}
+.stats-month-bar{gap:4px;margin-bottom:var(--gap)}
+
+/* ---------- 8. Dòng buổi học / dòng thống kê ---------- */
+.s-item{gap:10px;padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:6px}
+.s-item-info{min-width:0}
+.s-item-info strong{overflow-wrap:anywhere}
+.stats-student-row{padding:9px 0;gap:10px}
+.stats-student-name{overflow-wrap:anywhere}
+.stats-student-info,.card-stat-value,td{font-variant-numeric:tabular-nums}
+
+/* ---------- 9. Ô nhập: cùng chiều cao ---------- */
+input,select,textarea,button{font-family:var(--font)}
+.field input,.field select,.field textarea,
+.stu-search,.stu-filter-select,input[type=number],input[type=date],input[type=time]{
+  min-height:34px;padding:7px 10px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--radius-xs);color:var(--text);font-size:.82rem;
+}
+.field label{font-size:.74rem;color:var(--text3);margin-bottom:4px;display:block}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- 10. Modal ---------- */
+.modal-box{padding:20px}
+.modal-top{
+  position:sticky;top:-20px;background:var(--surface);z-index:2;
+  padding:6px 0 10px;margin:-6px 0 12px;border-bottom:1px solid var(--border);
+}
+
+/* ---------- 11. Danh sách tên đã bỏ qua: không dài vô tận ---------- */
+#cs-ignored-list{max-height:118px;overflow:auto;padding-right:4px}
+
+/* ---------- 12. Khu "Đề xuất từ Calendar" ---------- */
+#cs-inbox{margin-bottom:var(--gap)}
+.cs-bar{
+  display:flex;align-items:center;gap:8px;width:100%;
+  padding:10px 14px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  color:var(--text2);font-size:.8rem;cursor:pointer;text-align:left;
+}
+.cs-bar:hover{border-color:var(--border-strong);color:var(--text)}
+.cs-badge{background:var(--accent-subtle);color:var(--accent);border-radius:20px;padding:1px 8px;font-size:.7rem;font-weight:600}
+.cs-chev{margin-left:auto;color:var(--text3);font-size:.74rem}
+.cs-inbox-list{margin-top:8px;display:grid;gap:6px}
+.cs-hint{font-size:.72rem;color:var(--text3)}
+.cs-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-xs)}
+.cs-row-main{flex:1;min-width:0}
+.cs-row-main b{display:block;font-size:.82rem;overflow-wrap:anywhere}
+.cs-row-main span{font-size:.7rem;color:var(--text3)}
+.cs-row-act{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap}
+.cs-more{background:transparent;border:1px dashed var(--border);color:var(--text3);border-radius:var(--radius-xs);padding:7px;font-size:.76rem;cursor:pointer}
+.cs-more:hover{color:var(--text);border-color:var(--border-strong)}
+
+/* ---------- 13. Toast ---------- */
+.cs-toast-wrap{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:900;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+.cs-toast{background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-lg);border-radius:var(--radius-sm);padding:9px 14px;font-size:.8rem;transition:opacity .25s;animation:csT .18s ease}
+.cs-toast.ok{border-color:var(--success)}
+.cs-toast.err{border-color:var(--danger)}
+@keyframes csT{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- 14. Thanh cuộn gọn ---------- */
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+
+/* ---------- 15. Màn hình nhỏ ---------- */
+@media (max-width:640px){
+  :root{--card-pad:12px;--gap:10px}
+  .stu-grid{grid-template-columns:1fr}
+  .welcome-banner{padding:18px 16px}
+  .modal-box{padding:16px}
+}
